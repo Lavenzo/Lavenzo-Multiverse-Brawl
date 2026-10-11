@@ -149,6 +149,32 @@ The held-key animation smoke test clears enemies into sandbox to isolate input b
 
 ## GitHub Pages
 
-`npm run build` produces `dist/`. Deploy that directory using a GitHub Pages Actions workflow or another static host. Vite uses a relative base (`./`) so assets work under the planned `/Lavenzo-Multiverse-Brawl/` repository path. The repository is initialized locally; no remote, commit, push or deployment is performed automatically.
+The repository root contains Vite source, not a deployable static site. Publishing `master` → `/ (root)` serves the source `index.html`, which requests `/src/main.js` from the domain root (404). Even changing that source URL would leave CSS imports and Vite environment variables unbuilt. Publish the production `dist/` artifact instead.
+
+`vite.config.js` uses `/` for local development and `/Lavenzo-Multiverse-Brawl/` for production builds and preview. `npm run dev` remains at `http://127.0.0.1:5173/`. After building, `npm run preview` serves the game at `http://127.0.0.1:4173/Lavenzo-Multiverse-Brawl/`. Optional assets already use `import.meta.env.BASE_URL`, so no gameplay or image-loader changes are needed.
+
+### One-time GitHub settings and deployment
+
+1. Open this repository's **Settings → Pages → Build and deployment**. Change **Source** from **Deploy from a branch** to **GitHub Actions**. The old `master`/root publishing selection is no longer used.
+2. Review, commit and push the deployment changes to **master** yourself. Nothing is committed or pushed automatically by the coding agent.
+3. In **Actions**, open **Deploy game to GitHub Pages**. A push to master starts it automatically; **Run workflow** on master can rerun it manually after the workflow has been uploaded.
+4. Wait for both `build` and `deploy` jobs to finish. Open `https://lavenzo.github.io/Lavenzo-Multiverse-Brawl/` and refresh the page.
+
+`.github/workflows/deploy.yml` uses Node 22, `npm ci`, a production build and asset-path verification, then uploads only `dist/` and deploys it through the official Pages actions. It uses the lockfile, pinned action revisions, scoped permissions and the `github-pages` environment. No personal access token or manual copying of dist files is required. Keep `dist/` ignored by Git.
+
+If repository policy has disabled Actions or restricts which actions may run, allow the workflow's official `actions/*` actions under **Settings → Actions → General**. If the `github-pages` environment has deployment approval/branch rules, approve the deployment or permit **master** under **Settings → Environments → github-pages**. The workflow requests its own Pages write/OIDC permissions; there is no need to grant general repository write permission.
+
+### Verify before publishing
+
+```sh
+npm run build
+npm run verify:pages
+npm test
+npm run test:pages
+```
+
+`verify:pages` checks that generated HTML contains compiled JS/CSS references under `/Lavenzo-Multiverse-Brawl/assets/` and that those files exist. `test:pages` runs separate Playwright checks against the production preview, including HTTP/MIME asset responses and all four playable heroes. The existing game tests still use the root-path development server. Keep the source `index.html` entry `/src/main.js`; Vite rewrites it during the build.
+
+This setup follows [Vite's GitHub Pages deployment guidance](https://vite.dev/guide/static-deploy.html#github-pages) and [GitHub's custom Pages workflow documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages). A successful local build does not update the live site until the workflow/settings changes are uploaded and deployment succeeds.
 
 Read `DEVELOPMENT_STATUS.md` and `AGENTS.md` before continuing development.

@@ -1,5 +1,16 @@
 # Development status
 
+## GitHub Pages deployment repair
+
+- Confirmed live root cause: the Pages URL returned the source index.html with `src="/src/main.js"`; that domain-root JavaScript URL returned HTTP 404. The repository-prefixed source module exists, but contains a raw CSS import and still requires Vite transformation. The master/root branch deployment is publishing source rather than production output.
+- Updated vite.config.js: local development keeps `/`; build and production preview use `/Lavenzo-Multiverse-Brawl/`. Source index.html and all gameplay/artwork/boss modules are unchanged. AssetManager already uses Vite BASE_URL.
+- Added .github/workflows/deploy.yml: push to master/manual dispatch, Node 22, npm ci, build, production-path verification, upload dist only, then official Pages deployment with scoped permissions and github-pages environment. Actions are pinned to revisions in the official Vite deployment guide.
+- Added scripts/verify-pages-build.mjs, deployment-tests/pages.spec.js and playwright.pages.config.js; package.json adds verify:pages and test:pages. No dependencies or existing tests changed. Deployment browser artifacts use ignored tmp/pages-test-results separately from the game suite.
+- Updated README with root-cause explanation, preview URL, verification commands and manual GitHub setup.
+- Validation: npm run build and npm run verify:pages passed. Generated dist/index.html references `/Lavenzo-Multiverse-Brawl/assets/index-BxKbSvuH.js` and `/Lavenzo-Multiverse-Brawl/assets/index-J-327J8g.css`, and both files exist. Two production-preview Playwright checks passed, including asset HTTP/MIME responses and all four heroes starting without missing resources/page/console errors. Existing npm test suite: **19 passed (28.8 s)** at the unchanged local root URL. git diff --check passed. No gameplay source files or existing tests changed.
+- Remaining manual steps: switch Settings → Pages → Source to GitHub Actions, review/commit/push changes to master yourself, then wait for or manually run Deploy game to GitHub Pages. Allow official actions/approve github-pages environment if repository policy requires it. No commit, push, GitHub setting change or live deployment performed by the coding agent; the live fix cannot be confirmed until those steps succeed.
+
+
 Current milestone: **Milestone 3 — Stage 1 boss encounter (Kingpin)**. Milestones 1, 1.5, 2 and 3 are complete within their stated scope. Stage 1 (City Streets) is now a complete stage: four waves, a boss warning, Kingpin's entrance, the boss fight and STAGE 1 CLEARED. **Stop for user review. Stage 2 has not been started.** Stages 2–8 remain unavailable placeholders.
 
 ## Milestone 3 completed functionality
