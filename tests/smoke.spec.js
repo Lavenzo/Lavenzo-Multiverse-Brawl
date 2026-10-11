@@ -10,6 +10,8 @@ test('four heroes launch; normal mode keeps developer API private', async ({ pag
 });
 test('movement, jump, edge-triggered attacks and developer isolation', async ({ page }) => {
   await page.goto('/'); await page.getByTestId('start-developer').click(); await page.getByTestId('confirm-character').click();
+  // This input regression is isolated from enemy hits; combat has its own focused suite.
+  await page.evaluate(() => window.gameTestAPI.clearEnemies());
   const snapshot = () => page.evaluate(() => window.gameTestAPI.getPlayerSnapshot());
   const first = await snapshot(); await page.keyboard.down('ArrowRight'); await page.waitForTimeout(200); await page.keyboard.up('ArrowRight'); expect((await snapshot()).x).toBeGreaterThan(first.x);
   await page.keyboard.down('ArrowUp'); await page.keyboard.press('Space'); await page.waitForTimeout(100); expect((await snapshot()).z).toBeGreaterThan(0); expect((await snapshot()).y).toBeLessThan(first.y); await page.keyboard.up('ArrowUp'); await page.waitForTimeout(1000);

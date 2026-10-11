@@ -1,5 +1,5 @@
 export const stages = [
-  ['City Streets', 'Street thugs', 'Street Enforcer'], ['Underground Subway', 'Fast fighters', 'Armored Brute'],
+  ['City Streets', 'Mixed-universe regulars and elites', 'Street Enforcer (deferred)'], ['Underground Subway', 'Fast fighters', 'Armored Brute'],
   ['Industrial Factory', 'Industrial guards', 'Mechanical Destroyer'], ['Rooftop Pursuit', 'Agile assassins', 'Shadow Assassin'],
   ['Secret Laboratory', 'Mutant soldiers', 'Mutant Commander'], ['Enemy Fortress', 'Elite guards', 'Fortress Guardian'],
   ['Multiverse Portal', 'Mixed enemy factions', 'Dark Doppelganger'], ['Final Citadel', 'Elite mixed enemies', 'Multiverse Overlord'],
