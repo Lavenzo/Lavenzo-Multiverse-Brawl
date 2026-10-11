@@ -60,17 +60,17 @@ const smooth = t => { t = Math.max(0,Math.min(1,t)); return t*t*(3-2*t); };
 // ready = end of windup, strike = active window. Legs are feet-relative; arms are in upper-body space.
 const kingpinKeys = {
   punch: { ready: { lean:-.07, bodyY:2, frontElbow:[10,-108], frontHand:[-2,-122], backElbow:[16,-104], backHand:[32,-106] },
-    strike: { lean:.14, frontElbow:[58,-121], frontHand:[92,-123], backElbow:[-34,-104], backHand:[-30,-86], frontKnee:[27,-34], frontFoot:[34,-3] } },
+    strike: { lean:.18, bodyY:8, frontElbow:[68,-118], frontHand:[108,-116], backElbow:[-40,-104], backHand:[-35,-86], frontKnee:[32,-34], frontFoot:[38,-3] } },
   strong: { ready: { lean:-.15, frontElbow:[-6,-132], frontHand:[-32,-142], backElbow:[20,-102], backHand:[32,-114] },
-    strike: { lean:.22, frontElbow:[54,-142], frontHand:[86,-134], backElbow:[-36,-106], backHand:[-34,-84], frontKnee:[27,-34], frontFoot:[34,-3] } },
-  charge: { ready: { lean:.32, bodyY:10, frontElbow:[30,-110], frontHand:[42,-92], backElbow:[-28,-104], backHand:[-14,-90], backKnee:[-32,-28], backFoot:[-42,-3], frontKnee:[30,-30], frontFoot:[32,-3] },
-    strike: { lean:.5, bodyY:6, frontElbow:[48,-116], frontHand:[38,-138], backElbow:[-32,-110], backHand:[-22,-128] } },
-  slam: { ready: { lean:-.12, bodyY:-4, head:-.14, frontElbow:[26,-176], frontHand:[12,-206], backElbow:[-14,-172], backHand:[4,-208] },
-    strike: { lean:.62, bodyY:14, head:.1, frontElbow:[56,-100], frontHand:[78,-64], backElbow:[44,-98], backHand:[68,-62], backKnee:[-32,-30], backFoot:[-30,-3], frontKnee:[32,-30], frontFoot:[30,-3] } },
+    strike: { lean:.28, bodyY:10, frontElbow:[65,-138], frontHand:[105,-128], backElbow:[-45,-106], backHand:[-40,-84], frontKnee:[35,-34], frontFoot:[42,-3] } },
+  charge: { ready: { lean:.38, bodyY:12, frontElbow:[35,-110], frontHand:[48,-92], backElbow:[-35,-104], backHand:[-18,-90], backKnee:[-38,-28], backFoot:[-50,-3], frontKnee:[36,-30], frontFoot:[38,-3] },
+    strike: { lean:.6, bodyY:8, frontElbow:[55,-116], frontHand:[45,-138], backElbow:[-40,-110], backHand:[-28,-128] } },
+  slam: { ready: { lean:-.18, bodyY:-8, head:-.2, frontElbow:[32,-185], frontHand:[15,-220], backElbow:[-20,-182], backHand:[6,-222] },
+    strike: { lean:.7, bodyY:20, head:.15, frontElbow:[65,-95], frontHand:[90,-55], backElbow:[55,-92], backHand:[80,-50], backKnee:[-38,-30], backFoot:[-36,-3], frontKnee:[38,-30], frontFoot:[36,-3] } },
   shove: { ready: { lean:-.1, frontElbow:[16,-104], frontHand:[30,-114], backElbow:[-12,-100], backHand:[22,-104] },
-    strike: { lean:.22, frontElbow:[54,-114], frontHand:[88,-110], backElbow:[42,-102], backHand:[78,-98], frontKnee:[27,-34], frontFoot:[36,-3] } },
-  roar: { ready: { lean:.12, bodyY:4, frontElbow:[36,-106], frontHand:[30,-92], backElbow:[-14,-100], backHand:[20,-94] },
-    strike: { lean:-.18, head:-.3, frontElbow:[50,-152], frontHand:[66,-180], backElbow:[-44,-150], backHand:[-60,-176] } },
+    strike: { lean:.3, bodyY:10, frontElbow:[65,-114], frontHand:[105,-105], backElbow:[50,-102], backHand:[90,-92], frontKnee:[32,-34], frontFoot:[42,-3] } },
+  roar: { ready: { lean:.15, bodyY:6, frontElbow:[40,-106], frontHand:[35,-92], backElbow:[-18,-100], backHand:[25,-94] },
+    strike: { lean:-.25, bodyY:-6, head:-.4, frontElbow:[58,-160], frontHand:[78,-195], backElbow:[-52,-158], backHand:[-70,-190] } },
 };
 function blendPose(from, to, t) {
   const out = { ...from };
@@ -281,17 +281,17 @@ export class CharacterRenderer {
 
   kingpinPose(actor, state, stage, k) {
     const time = actor.time || 0, breath = Math.sin(time*2.4);
-    const base = { lean:0, bodyY:breath*1.2, head:0, backKnee:[-22,-34], backFoot:[-26,-3], frontKnee:[22,-33], frontFoot:[27,-3],
-      backElbow:[-41,-98], backHand:[-37,-73], frontElbow:[42,-101], frontHand:[45,-81] };
+    const base = { lean:-.05, bodyY:breath*1.2, head:0, backKnee:[-25,-34], backFoot:[-28,-3], frontKnee:[25,-33], frontFoot:[30,-3],
+      backElbow:[-46,-98], backHand:[-40,-73], frontElbow:[48,-101], frontHand:[50,-81] };
     if (state === 'walk') {
       const s = Math.sin(time*7.5), lift = v => -3-Math.max(0,v)*7;
-      return { ...base, lean:.04, bodyY:Math.abs(Math.cos(time*7.5))*2.4, backFoot:[-26-s*17,lift(s)], frontFoot:[27+s*17,lift(-s)], backKnee:[-20-s*9,-35], frontKnee:[23+s*9,-35],
-        backElbow:[-41+s*5,-98], backHand:[-37+s*10,-73], frontElbow:[42-s*5,-101], frontHand:[45-s*10,-81] };
+      return { ...base, lean:.02, bodyY:Math.abs(Math.cos(time*7.5))*2.4, backFoot:[-28-s*17,lift(s)], frontFoot:[30+s*17,lift(-s)], backKnee:[-25-s*9,-35], frontKnee:[25+s*9,-35],
+        backElbow:[-46+s*6,-98], backHand:[-40+s*12,-73], frontElbow:[48-s*6,-101], frontHand:[50-s*12,-81] };
     }
     if (state === 'intro') {
       const progress = actor.actionDuration ? 1-actor.actionTime/actor.actionDuration : .8;
-      return progress < .5 ? { ...base, frontElbow:[34,-108], frontHand:[22,-126], backElbow:[-20,-100], backHand:[10,-112] }
-        : { ...base, frontElbow:[36,-100], frontHand:[30,-97+Math.sin(time*16)*2], backElbow:[-6,-96], backHand:[20,-99] };
+      return progress < .5 ? { ...base, lean:-.1, bodyY: -2, frontElbow:[40,-108], frontHand:[28,-126], backElbow:[-25,-100], backHand:[12,-112] }
+        : { ...base, lean:-.1, bodyY: -4, frontElbow:[42,-100], frontHand:[36,-97+Math.sin(time*16)*2], backElbow:[-10,-96], backHand:[25,-99] };
     }
     if (state === 'hurt') return { ...base, lean:-.2, head:-.18, frontElbow:[36,-140], frontHand:[52,-156], backElbow:[-42,-110], backHand:[-52,-90] };
     if (state === 'backstep') return { ...base, lean:-.12, bodyY:3, frontElbow:[38,-118], frontHand:[32,-138], backElbow:[10,-108], backHand:[26,-120], backKnee:[-28,-32], backFoot:[-36,-3], frontKnee:[18,-36], frontFoot:[20,-7] };
@@ -323,8 +323,8 @@ export class CharacterRenderer {
     if (state === 'hurt') c.translate(-6,1);
     if (state === 'roar' && stage !== 'windup') c.translate(Math.sin(time*70)*1.6,0);
     const hipY = -64+P.bodyY;
-    limb(c,[-15,hipY],P.backKnee,P.backFoot,32,k.pantsShade,k.pantsDeep); this.kingpinShoe(c,P.backFoot);
-    limb(c,[14,hipY],P.frontKnee,P.frontFoot,34,k.pants,k.pantsShade); this.kingpinShoe(c,P.frontFoot);
+    limb(c,[-15,hipY],P.backKnee,P.backFoot,36,k.pantsShade,k.pantsDeep); this.kingpinShoe(c,P.backFoot);
+    limb(c,[14,hipY],P.frontKnee,P.frontFoot,38,k.pants,k.pantsShade); this.kingpinShoe(c,P.frontFoot);
     line(c,[mix([14,hipY],P.frontKnee,.3),mix(P.frontKnee,P.frontFoot,.75)],k.pantsShade,1.5);
     c.save(); c.translate(0,hipY); c.rotate(P.lean); c.translate(0,64);
     this.kingpinArm(c,[-27,-124],P.backElbow,P.backHand,k.suitShade,k.suitDeep,shade,false);
@@ -343,63 +343,82 @@ export class CharacterRenderer {
   }
   kingpinArm(c, shoulder, elbow, hand, cloth, clothShade, fist, front) {
     const k = kingpinPalette;
-    limb(c,shoulder,elbow,hand,front ? 34 : 31,cloth,clothShade);
+    limb(c,shoulder,elbow,hand,front ? 42 : 38,cloth,clothShade);
     const angle = Math.atan2(hand[1]-elbow[1],hand[0]-elbow[0]), ux = Math.cos(angle), uy = Math.sin(angle);
-    const cuff = [hand[0]-ux*13,hand[1]-uy*13];
-    segment(c,cuff,[hand[0]-ux*6,hand[1]-uy*6],24,k.shirt,k.shirtShade); oval(c,...cuff,2.5,2.5,k.gold,null);
-    oval(c,...hand,14,12.5,fist); line(c,[[hand[0]-5,hand[1]-6],[hand[0]+7,hand[1]-5]],'#0000002e',2.5);
-    if (front) line(c,[[hand[0]+2,hand[1]-7],[hand[0]+4,hand[1]+1]],k.gold,3);
+    const cuff = [hand[0]-ux*15,hand[1]-uy*15];
+    segment(c,cuff,[hand[0]-ux*8,hand[1]-uy*8],28,k.shirt,k.shirtShade); oval(c,...cuff,3.0,3.0,k.gold,null);
+    oval(c,...hand,17,15,fist); line(c,[[hand[0]-6,hand[1]-7],[hand[0]+8,hand[1]-6]],'#0000002e',3);
+    if (front) line(c,[[hand[0]+2,hand[1]-8],[hand[0]+5,hand[1]+1]],k.gold,3.5);
   }
   kingpinTorso(c) {
     const k = kingpinPalette;
     shape(c,[[-14,-139],[-6,-147],[8,-144],[10,-136]],k.suitShade);
-    // Rounded barrel torso: massive upper body, extremely broad shoulders.
-    c.beginPath(); c.moveTo(-18,-142); c.lineTo(24,-144); c.quadraticCurveTo(44,-139,46,-124); c.quadraticCurveTo(55,-98,46,-70);
-    c.quadraticCurveTo(42,-60,32,-56); c.lineTo(-30,-54); c.quadraticCurveTo(-46,-64,-48,-97); c.quadraticCurveTo(-48,-121,-40,-129); c.closePath();
-    c.fillStyle = k.suit; c.fill(); c.strokeStyle = '#111b30'; c.lineWidth = 2.5; c.stroke();
-    c.beginPath(); c.moveTo(-40,-126); c.quadraticCurveTo(-30,-104,-25,-58); c.lineTo(-30,-54); c.quadraticCurveTo(-46,-64,-48,-97); c.quadraticCurveTo(-48,-118,-40,-126); c.fillStyle = k.suitShade; c.fill();
-    c.beginPath(); c.moveTo(46,-108); c.quadraticCurveTo(52,-84,36,-62); c.strokeStyle = k.suitShade; c.lineWidth = 5; c.lineCap = 'round'; c.stroke();
+    // Massive, broad-shouldered suit jacket, V-shaped structure.
+    c.beginPath(); c.moveTo(-25,-148); c.lineTo(35,-152); // Shoulders
+    c.lineTo(60,-110); // Wide upper chest
+    c.quadraticCurveTo(45,-75, 35,-60); // Taper to waist
+    c.lineTo(-30,-58); // Bottom hem
+    c.quadraticCurveTo(-55,-80, -60,-110); // Back taper
+    c.lineTo(-25,-148); c.closePath();
+    c.fillStyle = k.suit; c.fill(); c.strokeStyle = '#111b30'; c.lineWidth = 3; c.stroke();
 
-    // Shirt and tie
-    shape(c,[[9,-142],[26,-142],[35,-110],[30,-94],[20,-102]],k.shirt,null);
-    shape(c,[[17,-139],[25,-139],[30,-106],[25,-98],[20,-106]],k.tie,null);
-    line(c,[[17,-138],[25,-138]],k.shirtShade,2); oval(c,25,-120,2.4,2.4,k.gem,null);
+    // Suit shading for V-shape depth
+    c.beginPath(); c.moveTo(-60,-110); c.quadraticCurveTo(-45,-100, -35,-60);
+    c.lineTo(-30,-58); c.quadraticCurveTo(-55,-80, -60,-110); c.fillStyle = k.suitShade; c.fill();
 
-    // Lapels
-    shape(c,[[9,-143],[15,-131],[10,-127],[30,-94],[24,-96],[5,-127]],k.suitShade,null);
-    line(c,[[26,-143],[38,-115],[30,-94]],k.suitDeep,2);
-    oval(c,33,-84,3,3,k.suitShade,null); oval(c,37,-70,3,3,k.suitShade,null);
+    // Jacket crease lines to emphasize structure
+    c.beginPath(); c.moveTo(50,-110); c.quadraticCurveTo(45,-85, 30,-62); c.strokeStyle = k.suitShade; c.lineWidth = 5; c.lineCap = 'round'; c.stroke();
 
-    shape(c,[[-8,-117],[2,-119],[0,-111],[-7,-111]],k.shirt,null); line(c,[[-9,-111],[3,-112]],k.suitDeep,1.5);
-    line(c,[[-28,-57],[33,-59]],k.suitDeep,2); line(c,[[-22,-129],[-4,-124],[12,-127]],'#ffffffaa',2);
+    // Large contrasting shirt and tie
+    shape(c,[[10,-149],[28,-149],[38,-112],[32,-90],[20,-100]],k.shirt,null);
+    shape(c,[[18,-146],[27,-146],[32,-108],[27,-96],[22,-108]],k.tie,null);
+    line(c,[[18,-145],[27,-145]],k.shirtShade,3); oval(c,27,-122,3,3,k.gem,null);
+
+    // Wide structured lapels
+    shape(c,[[10,-150],[16,-135],[10,-130],[32,-90],[24,-92],[5,-130]],k.suitShade,null); // Left lapel
+    line(c,[[28,-150],[42,-115],[32,-90]],k.suitDeep,3); // Right lapel
+
+    oval(c,35,-80,3.5,3.5,k.suitShade,null); oval(c,38,-65,3.5,3.5,k.suitShade,null); // Buttons
+
+    // Collar edge
+    shape(c,[[-10,-119],[4,-121],[2,-111],[-9,-111]],k.shirt,null);
+    line(c,[[-11,-111],[5,-112]],k.suitDeep,2);
+
+    line(c,[[-28,-60],[35,-62]],k.suitDeep,2.5); // Bottom hem crease
+    line(c,[[-24,-135],[-2,-129],[16,-132]],'#ffffffaa',3); // Shoulder highlight
   }
   kingpinHead(c, P, skin, shade, enraged, open, time) {
-    c.save(); c.translate(4,-140); c.rotate(P.head || 0); c.translate(-4,140);
-    // Huge neck and head
-    shape(c,[[-14,-133],[-13,-152],[20,-153],[23,-134]],skin);
-    oval(c,5,-162,18,20,skin);
-    // Heavy jaw
-    shape(c,[[-4,-153],[23,-156],[26,-145],[18,-139],[1,-140],[-8,-149]],skin,null);
-    line(c,[[23,-156],[26,-145],[18,-139],[1,-140]],'#182039',2);
+    c.save(); c.translate(6,-144); c.rotate(P.head || 0); c.translate(-6,144);
+
+    // Massive neck
+    shape(c,[[-18,-133],[-16,-156],[22,-158],[25,-136]],skin);
+
+    // Comparatively smaller, imposing bald head
+    oval(c,4,-166,16,18,skin);
+
+    // Extremely strong, square jaw
+    shape(c,[[-6,-156],[24,-160],[28,-148],[18,-142],[-2,-144],[-10,-152]],skin,null);
+    line(c,[[24,-160],[28,-148],[18,-142],[-2,-144]],'#182039',2.5);
 
     // Bald highlight
-    c.beginPath(); c.ellipse(0,-174,9,4,-.5,0,Math.PI*2); c.fillStyle = '#ffffff60'; c.fill();
-    oval(c,-8,-158,4,6,shade);
+    c.beginPath(); c.ellipse(0,-178,8,3.5,-.5,0,Math.PI*2); c.fillStyle = '#ffffff60'; c.fill();
+    oval(c,-8,-162,3.5,5.5,shade); // Ear
 
-    // Thicker, more menacing brows
-    line(c,enraged ? [[6,-171],[22,-163]] : [[6,-167],[22,-165]],'#221111',4);
-    oval(c,16,-161,2.2,2.0,'#050505',null); // Eye
+    // Deep, pronounced eyebrows for a stern expression
+    line(c,enraged ? [[5,-175],[24,-166]] : [[5,-170],[24,-168]],'#110808',5);
+    oval(c,16,-164,2.5,2.0,'#000000',null); // Eye
 
-    // More prominent nose
-    shape(c,[[19,-165],[27,-157],[21,-154]],skin,'#7b4a38',1.8);
+    // Pronounced nose
+    shape(c,[[20,-168],[28,-160],[22,-157]],skin,'#7b4a38',2);
 
-    if (open) { shape(c,[[10,-151],[21,-153],[20,-141],[11,-142]],'#3a1420'); line(c,[[11,-150],[20,-151]],'#f6eedb',2.5); }
-    else if (enraged) { shape(c,[[10,-151],[21,-152],[20,-145],[11,-145]],'#f2ead8','#5a2a2a',1.5); line(c,[[14,-151],[14,-147]],'#8a6a5a',1.5); }
-    else line(c,[[11,-149],[21,-150]],'#4a1a10',2.5);
+    // Mouth
+    if (open) { shape(c,[[10,-155],[22,-157],[21,-145],[11,-146]],'#3a1420'); line(c,[[11,-154],[21,-155]],'#f6eedb',2.5); }
+    else if (enraged) { shape(c,[[10,-155],[22,-156],[21,-149],[11,-149]],'#f2ead8','#5a2a2a',1.5); line(c,[[14,-155],[14,-151]],'#8a6a5a',1.5); }
+    else line(c,[[11,-153],[22,-154]],'#3a1a10',3);
 
     if (enraged) {
-      line(c,[[-8,-176],[-3,-172],[-6,-167]],'#c22f35',2.2); line(c,[[7,-180],[10,-175],[7,-170]],'#c22f35',2);
-      for (let i = 0; i < 3; i++) { const t = (time*.9+i/3)%1; c.globalAlpha = (1-t)*.55; oval(c,-4+i*8+Math.sin(t*6+i)*3,-184-t*30,5+t*8,4+t*6,'#fff',null); }
+      line(c,[[-10,-180],[-4,-176],[-8,-171]],'#c22f35',2.5); line(c,[[6,-184],[9,-179],[6,-174]],'#c22f35',2.2);
+      for (let i = 0; i < 3; i++) { const t = (time*.9+i/3)%1; c.globalAlpha = (1-t)*.6; oval(c,-6+i*9+Math.sin(t*6+i)*3,-188-t*30,5+t*8,4+t*6,'#fff',null); }
       c.globalAlpha = 1;
     }
     c.restore();
