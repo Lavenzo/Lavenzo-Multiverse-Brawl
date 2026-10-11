@@ -54,7 +54,7 @@ function burst(c, at, size = 1, color = '#fff3b4') {
 }
 
 // Kingpin: heavy white-suited boss with his own proportions, drawn with the same helpers and outline style.
-const kingpinPalette = { suit:'#f1ede3', suitShade:'#cbc4b7', suitDeep:'#a39c90', shirt:'#6b3e90', shirtShade:'#46285f', tie:'#2d1a3c', skin:'#e3ae88', skinShade:'#b07a5a', rage:'#e8977c', rageShade:'#b5604c', shoe:'#2a2330', gold:'#e9c46c', gem:'#c3f0ff' };
+const kingpinPalette = { suit:'#ffffff', suitShade:'#dcdce4', suitDeep:'#b0b0bc', shirt:'#911122', shirtShade:'#5e0915', tie:'#111111', skin:'#e3ae88', skinShade:'#b07a5a', rage:'#e8977c', rageShade:'#b5604c', shoe:'#181818', gold:'#e9c46c', gem:'#c3f0ff', pants:'#28282d', pantsShade:'#15151a', pantsDeep:'#0a0a0f' };
 const mix = (a,b,t) => [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t];
 const smooth = t => { t = Math.max(0,Math.min(1,t)); return t*t*(3-2*t); };
 // ready = end of windup, strike = active window. Legs are feet-relative; arms are in upper-body space.
@@ -323,9 +323,9 @@ export class CharacterRenderer {
     if (state === 'hurt') c.translate(-6,1);
     if (state === 'roar' && stage !== 'windup') c.translate(Math.sin(time*70)*1.6,0);
     const hipY = -64+P.bodyY;
-    limb(c,[-15,hipY],P.backKnee,P.backFoot,28,k.suitShade,k.suitDeep); this.kingpinShoe(c,P.backFoot);
-    limb(c,[14,hipY],P.frontKnee,P.frontFoot,30,k.suit,k.suitShade); this.kingpinShoe(c,P.frontFoot);
-    line(c,[mix([14,hipY],P.frontKnee,.3),mix(P.frontKnee,P.frontFoot,.75)],k.suitShade,1.5);
+    limb(c,[-15,hipY],P.backKnee,P.backFoot,32,k.pantsShade,k.pantsDeep); this.kingpinShoe(c,P.backFoot);
+    limb(c,[14,hipY],P.frontKnee,P.frontFoot,34,k.pants,k.pantsShade); this.kingpinShoe(c,P.frontFoot);
+    line(c,[mix([14,hipY],P.frontKnee,.3),mix(P.frontKnee,P.frontFoot,.75)],k.pantsShade,1.5);
     c.save(); c.translate(0,hipY); c.rotate(P.lean); c.translate(0,64);
     this.kingpinArm(c,[-27,-124],P.backElbow,P.backHand,k.suitShade,k.suitDeep,shade,false);
     this.kingpinTorso(c);
@@ -336,54 +336,70 @@ export class CharacterRenderer {
   }
   kingpinShoe(c, foot) {
     c.save(); c.translate(...foot);
-    shape(c,[[-13,-11],[8,-12],[15,-6],[25,-2],[24,5],[-14,5],[-16,-2]],kingpinPalette.shoe);
-    line(c,[[-12,3],[23,3]],'#120e18',2); line(c,[[2,-8],[12,-6]],'#ffffff55',2); c.restore();
+    shape(c,[[-13,-11],[8,-12],[15,-6],[27,-2],[26,5],[-14,5],[-16,-2]],kingpinPalette.shoe);
+    line(c,[[-12,3],[25,3]],'#000000',2);
+    line(c,[[2,-9],[14,-6]],'#ffffff99',3); // Polished shine
+    c.restore();
   }
   kingpinArm(c, shoulder, elbow, hand, cloth, clothShade, fist, front) {
     const k = kingpinPalette;
-    limb(c,shoulder,elbow,hand,front ? 27 : 25,cloth,clothShade);
+    limb(c,shoulder,elbow,hand,front ? 34 : 31,cloth,clothShade);
     const angle = Math.atan2(hand[1]-elbow[1],hand[0]-elbow[0]), ux = Math.cos(angle), uy = Math.sin(angle);
-    const cuff = [hand[0]-ux*12,hand[1]-uy*12];
-    segment(c,cuff,[hand[0]-ux*5,hand[1]-uy*5],21,k.shirt,k.shirtShade); oval(c,...cuff,2.2,2.2,k.gold,null);
-    oval(c,...hand,11.5,10.5,fist); line(c,[[hand[0]-4,hand[1]-5],[hand[0]+6,hand[1]-4]],'#0000002e',2);
-    if (front) line(c,[[hand[0]+1,hand[1]-6],[hand[0]+3,hand[1]+1]],k.gold,2.5);
+    const cuff = [hand[0]-ux*13,hand[1]-uy*13];
+    segment(c,cuff,[hand[0]-ux*6,hand[1]-uy*6],24,k.shirt,k.shirtShade); oval(c,...cuff,2.5,2.5,k.gold,null);
+    oval(c,...hand,14,12.5,fist); line(c,[[hand[0]-5,hand[1]-6],[hand[0]+7,hand[1]-5]],'#0000002e',2.5);
+    if (front) line(c,[[hand[0]+2,hand[1]-7],[hand[0]+4,hand[1]+1]],k.gold,3);
   }
   kingpinTorso(c) {
     const k = kingpinPalette;
     shape(c,[[-14,-139],[-6,-147],[8,-144],[10,-136]],k.suitShade);
-    // Rounded barrel torso: broad shoulders, heavy belly, short jacket hem.
-    c.beginPath(); c.moveTo(-14,-140); c.lineTo(17,-142); c.quadraticCurveTo(33,-139,37,-126); c.quadraticCurveTo(49,-98,42,-73);
-    c.quadraticCurveTo(39,-62,30,-58); c.lineTo(-25,-56); c.quadraticCurveTo(-41,-66,-41,-97); c.quadraticCurveTo(-41,-121,-34,-127); c.closePath();
-    c.fillStyle = k.suit; c.fill(); c.strokeStyle = '#111b30'; c.lineWidth = 2; c.stroke();
-    c.beginPath(); c.moveTo(-34,-124); c.quadraticCurveTo(-26,-104,-22,-60); c.lineTo(-25,-56); c.quadraticCurveTo(-41,-66,-41,-97); c.quadraticCurveTo(-41,-118,-34,-124); c.fillStyle = k.suitShade; c.fill();
-    c.beginPath(); c.moveTo(42,-108); c.quadraticCurveTo(47,-84,34,-64); c.strokeStyle = k.suitShade; c.lineWidth = 4; c.lineCap = 'round'; c.stroke();
-    shape(c,[[9,-140],[24,-140],[33,-112],[28,-96],[20,-104]],k.shirt,null);
-    shape(c,[[17,-137],[23,-137],[27,-108],[23,-100],[19,-108]],k.tie,null);
-    line(c,[[17,-136],[23,-136]],k.shirtShade,2); oval(c,23,-120,2.4,2.4,k.gem,null);
-    shape(c,[[9,-141],[15,-131],[10,-127],[27,-96],[22,-98],[5,-127]],k.suitShade,null);
-    line(c,[[24,-141],[34,-115],[28,-96]],k.suitDeep,2);
-    oval(c,31,-86,2.6,2.6,k.tie,null); oval(c,35,-73,2.6,2.6,k.tie,null);
+    // Rounded barrel torso: massive upper body, extremely broad shoulders.
+    c.beginPath(); c.moveTo(-18,-142); c.lineTo(24,-144); c.quadraticCurveTo(44,-139,46,-124); c.quadraticCurveTo(55,-98,46,-70);
+    c.quadraticCurveTo(42,-60,32,-56); c.lineTo(-30,-54); c.quadraticCurveTo(-46,-64,-48,-97); c.quadraticCurveTo(-48,-121,-40,-129); c.closePath();
+    c.fillStyle = k.suit; c.fill(); c.strokeStyle = '#111b30'; c.lineWidth = 2.5; c.stroke();
+    c.beginPath(); c.moveTo(-40,-126); c.quadraticCurveTo(-30,-104,-25,-58); c.lineTo(-30,-54); c.quadraticCurveTo(-46,-64,-48,-97); c.quadraticCurveTo(-48,-118,-40,-126); c.fillStyle = k.suitShade; c.fill();
+    c.beginPath(); c.moveTo(46,-108); c.quadraticCurveTo(52,-84,36,-62); c.strokeStyle = k.suitShade; c.lineWidth = 5; c.lineCap = 'round'; c.stroke();
+
+    // Shirt and tie
+    shape(c,[[9,-142],[26,-142],[35,-110],[30,-94],[20,-102]],k.shirt,null);
+    shape(c,[[17,-139],[25,-139],[30,-106],[25,-98],[20,-106]],k.tie,null);
+    line(c,[[17,-138],[25,-138]],k.shirtShade,2); oval(c,25,-120,2.4,2.4,k.gem,null);
+
+    // Lapels
+    shape(c,[[9,-143],[15,-131],[10,-127],[30,-94],[24,-96],[5,-127]],k.suitShade,null);
+    line(c,[[26,-143],[38,-115],[30,-94]],k.suitDeep,2);
+    oval(c,33,-84,3,3,k.suitShade,null); oval(c,37,-70,3,3,k.suitShade,null);
+
     shape(c,[[-8,-117],[2,-119],[0,-111],[-7,-111]],k.shirt,null); line(c,[[-9,-111],[3,-112]],k.suitDeep,1.5);
-    line(c,[[-24,-59],[31,-61]],k.suitDeep,2); line(c,[[-18,-127],[-2,-122],[10,-125]],'#ffffffaa',2);
+    line(c,[[-28,-57],[33,-59]],k.suitDeep,2); line(c,[[-22,-129],[-4,-124],[12,-127]],'#ffffffaa',2);
   }
   kingpinHead(c, P, skin, shade, enraged, open, time) {
     c.save(); c.translate(4,-140); c.rotate(P.head || 0); c.translate(-4,140);
-    shape(c,[[-10,-133],[-9,-150],[16,-151],[19,-134]],skin);
-    oval(c,5,-162,15.5,17.5,skin);
-    // Heavy jaw: fill hides the skull's lower outline, then only the outer jawline is inked.
-    shape(c,[[-2,-153],[19,-156],[22,-147],[15,-141],[1,-142],[-6,-149]],skin,null);
-    line(c,[[19,-156],[22,-147],[15,-141],[1,-142]],'#182039',1.8);
-    c.beginPath(); c.ellipse(-1,-172,7,3.4,-.5,0,Math.PI*2); c.fillStyle = '#ffffff60'; c.fill();
-    oval(c,-6,-158,3.4,5,shade);
-    line(c,enraged ? [[7,-170],[20,-163]] : [[7,-167],[20,-165]],'#3a2626',3.2);
-    oval(c,15,-162,1.9,1.7,'#1a1420',null);
-    shape(c,[[18,-165],[24,-157],[19,-154]],skin,'#7b4a38',1.4);
-    if (open) { shape(c,[[10,-151],[19,-153],[18,-143],[11,-144]],'#3a1420'); line(c,[[11,-150],[18,-151]],'#f6eedb',2); }
-    else if (enraged) { shape(c,[[10,-151],[19,-152],[18,-147],[11,-147]],'#f2ead8','#5a2a2a',1.2); line(c,[[14,-151],[14,-147]],'#8a6a5a',1); }
-    else line(c,[[11,-149],[19,-150]],'#6b3a30',2.2);
+    // Huge neck and head
+    shape(c,[[-14,-133],[-13,-152],[20,-153],[23,-134]],skin);
+    oval(c,5,-162,18,20,skin);
+    // Heavy jaw
+    shape(c,[[-4,-153],[23,-156],[26,-145],[18,-139],[1,-140],[-8,-149]],skin,null);
+    line(c,[[23,-156],[26,-145],[18,-139],[1,-140]],'#182039',2);
+
+    // Bald highlight
+    c.beginPath(); c.ellipse(0,-174,9,4,-.5,0,Math.PI*2); c.fillStyle = '#ffffff60'; c.fill();
+    oval(c,-8,-158,4,6,shade);
+
+    // Thicker, more menacing brows
+    line(c,enraged ? [[6,-171],[22,-163]] : [[6,-167],[22,-165]],'#221111',4);
+    oval(c,16,-161,2.2,2.0,'#050505',null); // Eye
+
+    // More prominent nose
+    shape(c,[[19,-165],[27,-157],[21,-154]],skin,'#7b4a38',1.8);
+
+    if (open) { shape(c,[[10,-151],[21,-153],[20,-141],[11,-142]],'#3a1420'); line(c,[[11,-150],[20,-151]],'#f6eedb',2.5); }
+    else if (enraged) { shape(c,[[10,-151],[21,-152],[20,-145],[11,-145]],'#f2ead8','#5a2a2a',1.5); line(c,[[14,-151],[14,-147]],'#8a6a5a',1.5); }
+    else line(c,[[11,-149],[21,-150]],'#4a1a10',2.5);
+
     if (enraged) {
-      line(c,[[-6,-174],[-2,-170],[-5,-166]],'#c22f35',1.8); line(c,[[6,-178],[9,-174],[6,-170]],'#c22f35',1.6);
-      for (let i = 0; i < 3; i++) { const t = (time*.9+i/3)%1; c.globalAlpha = (1-t)*.45; oval(c,-4+i*8+Math.sin(t*6+i)*3,-184-t*30,4+t*6,3+t*5,'#fff',null); }
+      line(c,[[-8,-176],[-3,-172],[-6,-167]],'#c22f35',2.2); line(c,[[7,-180],[10,-175],[7,-170]],'#c22f35',2);
+      for (let i = 0; i < 3; i++) { const t = (time*.9+i/3)%1; c.globalAlpha = (1-t)*.55; oval(c,-4+i*8+Math.sin(t*6+i)*3,-184-t*30,5+t*8,4+t*6,'#fff',null); }
       c.globalAlpha = 1;
     }
     c.restore();
@@ -391,35 +407,35 @@ export class CharacterRenderer {
   kingpinEffects(c, actor, state, stage, P, time) {
     const hand = P.frontHand;
     if ((state === 'punch' || state === 'strong') && stage === 'active') {
-      c.save(); c.globalAlpha = .85;
-      line(c,[[hand[0]-34,hand[1]-9],[hand[0]-6,hand[1]-8]],'#fff1b1',3); line(c,[[hand[0]-40,hand[1]+6],[hand[0]-10,hand[1]+7]],'#ffd77b',2);
-      if (state === 'strong') { c.beginPath(); c.arc(34,-118,54,-1.75,-.25); c.strokeStyle = '#fff1c7'; c.lineWidth = 5; c.stroke(); }
-      burst(c,[hand[0]+16,hand[1]],1.1); c.restore();
+      c.save(); c.globalAlpha = .9;
+      line(c,[[hand[0]-45,hand[1]-10],[hand[0]-8,hand[1]-9]],'#fff1b1',5); line(c,[[hand[0]-50,hand[1]+8],[hand[0]-14,hand[1]+9]],'#ffd77b',4);
+      if (state === 'strong') { c.beginPath(); c.arc(34,-118,65,-1.8,-.2); c.strokeStyle = '#fff1c7'; c.lineWidth = 8; c.stroke(); }
+      burst(c,[hand[0]+22,hand[1]],2.0); c.restore();
     }
     if (state === 'shove' && stage === 'active') {
-      c.save(); c.globalAlpha = .8; for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(70,-104,26+i*13,-1,1); c.strokeStyle = i ? '#ffb38a' : '#fff4d4'; c.lineWidth = 4-i; c.stroke(); } c.restore();
+      c.save(); c.globalAlpha = .9; for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(75,-104,30+i*18,-1.2,1.2); c.strokeStyle = i%2 ? '#ffb38a' : '#fff4d4'; c.lineWidth = 6-i; c.stroke(); } c.restore();
     }
     if (state === 'roar' && stage !== 'windup') {
-      c.save(); c.globalAlpha = .75;
-      for (let i = 0; i < 10; i++) { const a = -Math.PI*.95+i*Math.PI*.95/9, r = 30+Math.sin(time*30+i)*3; line(c,[[8+Math.cos(a)*r,-160+Math.sin(a)*r],[8+Math.cos(a)*(r+18),-160+Math.sin(a)*(r+18)]],i%2 ? '#ff6a5c' : '#ffe0a8',3); }
+      c.save(); c.globalAlpha = .9;
+      for (let i = 0; i < 12; i++) { const a = -Math.PI*.95+i*Math.PI*.95/11, r = 35+Math.sin(time*40+i)*5; line(c,[[8+Math.cos(a)*r,-160+Math.sin(a)*r],[8+Math.cos(a)*(r+28),-160+Math.sin(a)*(r+28)]],i%2 ? '#ff6a5c' : '#ffe0a8',5); }
       c.restore();
     }
-    if (state === 'charge' && stage === 'windup') { c.save(); c.globalAlpha = .5; for (let i = 0; i < 2; i++) oval(c,30+i*5,-150-i*6+Math.sin(time*20)*1.5,3+i*2,2+i,'#ffffff',null); c.restore(); }
-    if ((state === 'charge' && stage === 'recover') || (actor.enraged && state === 'idle')) for (let i = 0; i < 2; i++) { const t = (time*1.6+i*.5)%1; c.save(); c.globalAlpha = 1-t; shape(c,[[22+i*7,-172+t*14],[25+i*7,-166+t*14],[22+i*7,-163+t*14],[19+i*7,-166+t*14]],'#bfe6ff',null); c.restore(); }
-    if (actor.hitFlash > 0) { c.save(); c.globalAlpha = Math.min(1,actor.hitFlash/.14); burst(c,[18,-108],1.6,'#ffffff'); burst(c,[18,-108],.9,'#ffd27b'); c.restore(); }
+    if (state === 'charge' && stage === 'windup') { c.save(); c.globalAlpha = .7; for (let i = 0; i < 3; i++) oval(c,35+i*8,-150-i*8+Math.sin(time*25)*2,4+i*3,3+i*1.5,'#ffffff',null); c.restore(); }
+    if ((state === 'charge' && stage === 'recover') || (actor.enraged && state === 'idle')) for (let i = 0; i < 3; i++) { const t = (time*1.6+i*.4)%1; c.save(); c.globalAlpha = 1-t; shape(c,[[22+i*9,-172+t*20],[26+i*9,-164+t*20],[22+i*9,-160+t*20],[18+i*9,-164+t*20]],'#bfe6ff',null); c.restore(); }
+    if (actor.hitFlash > 0) { c.save(); c.globalAlpha = Math.min(1,actor.hitFlash/.14); burst(c,[18,-108],2.2,'#ffffff'); burst(c,[18,-108],1.4,'#ffd27b'); c.restore(); }
   }
   // Ground-space effects stay level while the body leans or falls.
   kingpinGround(c, actor, state, stage, time) {
     c.save();
-    if (state === 'charge' && stage === 'windup') { c.globalAlpha = .55; for (let i = 0; i < 3; i++) oval(c,-48-i*11+Math.sin(time*20+i)*3,-5-i*4,6+i*3,4+i*1.5,'#c8c1cf',null); }
-    if (state === 'backstep') { c.globalAlpha = .5; for (let i = 0; i < 3; i++) oval(c,28+i*12,-4-i*3,7+i*2,3+i,'#c8c1cf',null); }
-    if (state === 'charge' && stage === 'active') { c.globalAlpha = .6; for (let i = 0; i < 5; i++) line(c,[[-52-i*4,-30-i*28],[-92-i*8,-30-i*28]],'#f3efe4',3-i*.3); }
-    if (state === 'slam' && (stage === 'active' || (stage === 'recover' && attackStage(actor).k < .45))) {
-      c.globalAlpha = .9;
-      for (let i = 0; i < 6; i++) { const a = Math.PI*(.05+i*.18); line(c,[[74,-2],[74+Math.cos(a)*24,-2+Math.sin(a)*5],[74+Math.cos(a)*44,-1+Math.sin(a)*8]],'#11182a',3); }
-      for (let i = 0; i < 5; i++) { const t = attackStage(actor).k; shape(c,[[60+i*8,-12-i*7-t*14],[66+i*8,-14-i*7-t*14],[64+i*8,-8-i*7-t*14]],'#8d8aa0',null); }
+    if (state === 'charge' && stage === 'windup') { c.globalAlpha = .75; for (let i = 0; i < 4; i++) oval(c,-50-i*14+Math.sin(time*25+i)*4,-5-i*5,8+i*4,5+i*2,'#c8c1cf',null); }
+    if (state === 'backstep') { c.globalAlpha = .6; for (let i = 0; i < 4; i++) oval(c,30+i*14,-4-i*4,9+i*3,4+i*1.5,'#c8c1cf',null); }
+    if (state === 'charge' && stage === 'active') { c.globalAlpha = .8; for (let i = 0; i < 7; i++) line(c,[[-55-i*6,-30-i*35],[-105-i*12,-30-i*35]],'#f3efe4',4-i*.4); }
+    if (state === 'slam' && (stage === 'active' || (stage === 'recover' && attackStage(actor).k < .65))) {
+      c.globalAlpha = 1.0;
+      for (let i = 0; i < 8; i++) { const a = Math.PI*(.05+i*.13); line(c,[[76,-2],[76+Math.cos(a)*34,-2+Math.sin(a)*7],[76+Math.cos(a)*64,-1+Math.sin(a)*12]],'#11182a',4); }
+      for (let i = 0; i < 7; i++) { const t = attackStage(actor).k; shape(c,[[60+i*10,-12-i*9-t*20],[68+i*10,-14-i*9-t*20],[66+i*10,-8-i*9-t*20]],'#a5a1bd',null); }
     }
-    if (state === 'defeated' && actor.actionTime <= .15) { c.globalAlpha = Math.max(0,.6-(actor.deathTime || 0)*.12); for (let i = 0; i < 6; i++) oval(c,-110+i*30,-6-(i%2)*5,16+(i%3)*6,7+(i%2)*3,'#bdb7c6',null); }
+    if (state === 'defeated' && actor.actionTime <= .15) { c.globalAlpha = Math.max(0,.8-(actor.deathTime || 0)*.12); for (let i = 0; i < 8; i++) oval(c,-130+i*35,-6-(i%2)*6,20+(i%3)*8,9+(i%2)*4,'#bdb7c6',null); }
     c.restore();
   }
 

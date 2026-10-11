@@ -30,7 +30,7 @@ export class Renderer {
     if(mini) { c.fillStyle='#121a2bcc'; c.fillRect(345,top,270,40); c.fillStyle='#c7d9e8'; c.font='bold 10px monospace'; c.fillText(`MINI-BOSS / ${mini.config.name.toUpperCase()}`,355,top+14); c.fillStyle='#344357'; c.fillRect(355,top+21,250,8); c.fillStyle='#d47592'; c.fillRect(355,top+21,250*mini.health/mini.maxHealth,8); }
     if(p && game.waves.phase==='warning') this.warning(game.waves.phaseTime);
     c.fillStyle='#060e1b0b'; for(let y=0;y<540;y+=4) c.fillRect(0,y,960,1);
-    c.fillStyle='#c9c1d5'; c.font='10px monospace'; c.fillText('CITY STREETS / MIXED-UNIVERSE BRAWL / FOUR WAVES + KINGPIN',20,529);
+    c.fillStyle='#c9c1d5'; c.font='10px monospace'; c.fillText('CITY STREETS / MIXED-UNIVERSE BRAWL / FOUR WAVES + WILSON FISK',20,529);
   }
   warning(time) {
     const c=this.ctx,edge=c.createRadialGradient(480,270,230,480,270,560);

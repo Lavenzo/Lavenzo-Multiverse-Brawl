@@ -7,7 +7,7 @@ export class UI {
   constructor() {
     document.querySelector('#app').innerHTML = `<header><a href="#" id="home">L<span> / </span>MB</a><span>FOUNDATION BUILD <b>01</b></span></header><main><div class="intro"><span class="eyebrow">LAVENZO KAI KAI PRESENTS</span><h1>LAVENZO<br><span>MULTIVERSE BRAWL</span></h1><p>4 HEROES · 8 STAGES · ONE FINAL BATTLE</p></div><section class="cabinet"><div class="cabinet-top"><span>● ARCADE SYSTEM / ONLINE</span><span id="mode-label">SINGLE PLAYER</span></div><div class="viewport"><canvas width="960" height="540" aria-label="Game arena"></canvas><div id="hud"></div><div id="boss-banner" data-testid="boss-banner" role="status" hidden></div><div id="screen"></div><div id="developer" hidden></div><div id="toast" role="status"></div></div><div class="controls"><span><kbd>↑ ↓ ← →</kbd> MOVE</span><span><kbd>A</kbd> PUNCH</span><span><kbd>S</kbd> KICK</span><span><kbd>D</kbd> SPECIAL</span><span><kbd>W</kbd> STRONG</span><span><kbd>SPACE</kbd> JUMP</span><span><kbd>ESC</kbd> PAUSE</span></div></section><div class="below"><span>01 / CITY STREETS <b>MOVEMENT & ANIMATION PREVIEW</b></span><span>ORIGINAL PLACEHOLDER ART</span></div></main><footer><span>Developed by Lavenzo Kai Kai</span><span>Unofficial Fan Game · Personal Hobby Project</span></footer>`;
     this.developerOpen = false; this.characterRenderer = new CharacterRenderer(); this.hudKey = ''; this.bossKey = ''; this.bannerKey = ''; this.lastHudUpdate = 0;
-    document.querySelector('header b').textContent = '03'; document.querySelector('.below b').textContent='FOUR WAVES + KINGPIN BOSS';
+    document.querySelector('header b').textContent = '03'; document.querySelector('.below b').textContent='FOUR WAVES + WILSON FISK BOSS';
     document.querySelector('.below span:last-child').textContent = 'ORIGINAL CANVAS ILLUSTRATIONS';
     document.querySelector('#hud').innerHTML = '<div><strong id="hud-name"></strong><div class="bar"><i id="hud-health"></i></div><div class="bar energy"><i id="hud-energy"></i></div><small id="hud-stats"></small></div><div class="boss-hud" id="boss-hud" data-testid="boss-hud" hidden><span class="boss-label" id="boss-label"></span><strong id="boss-name" data-testid="boss-name"></strong><div class="bar boss-bar"><i class="boss-trail" id="boss-trail"></i><i class="boss-fill" id="boss-health" data-testid="boss-health"></i></div><small id="boss-stats"></small></div><div class="stage-hud">STAGE 01<br><strong>CITY STREETS</strong><span id="hud-wave" data-testid="wave-hud"></span></div><pre class="debug" hidden></pre>';
     const $ = selector => document.querySelector(selector);
@@ -51,7 +51,7 @@ export class UI {
       const clear=g.state==='stageClear',bossFight=g.waves.phase!=='waves';
       const note=clear?(g.developerMode?'Developer run: score and progress are not saved.':`Best score ${g.progress.data.bestScore}. Stage 2 is still in development.`)
         :bossFight?'Jump over the Ground Slam shockwave and step out of the Bull Charge lane.':'Try a special attack to push back a group. Move between lanes to dodge.';
-      root.innerHTML=`<span class="eyebrow">CITY STREETS / ${clear?'KINGPIN DEFEATED':'OUT OF LIVES'}</span><h2 data-testid="result-title">${clear?'STAGE 1 CLEARED':'GAME OVER'}</h2><p data-testid="final-score">${clear?'FINAL SCORE':'SCORE'} ${g.score}</p><p class="note">${note}</p>`;
+      root.innerHTML=`<span class="eyebrow">CITY STREETS / ${clear?'WILSON FISK DEFEATED':'OUT OF LIVES'}</span><h2 data-testid="result-title">${clear?'STAGE 1 CLEARED':'GAME OVER'}</h2><p data-testid="final-score">${clear?'FINAL SCORE':'SCORE'} ${g.score}</p><p class="note">${note}</p>`;
       root.append(this.button('retry',clear?'RETRY STAGE 1':'RETRY CITY STREETS',()=>g.startStage()),this.button('return-menu','MAIN MENU',()=>g.resetGame()));
     }
   }
@@ -62,7 +62,7 @@ export class UI {
     const energy=Math.floor(g.player.energy),key=`${g.character.id}:${g.player.health}:${energy}:${g.lives}:${g.score}`;
     if(key!==this.hudKey) { this.hudKey=key; h.name.textContent=g.character.name.toUpperCase(); h.health.style.width=`${g.player.health/g.character.health*100}%`; h.energy.style.width=`${energy}%`; h.stats.textContent=`HP ${g.player.health} / ${g.character.health} · LIVES ${g.lives} · SCORE ${String(g.score).padStart(6,'0')}`; }
     const phase=g.waves.phase,boss=g.activeBoss();
-    const bossText={warning:'WARNING · BOSS APPROACHING',entrance:'BOSS · KINGPIN',boss:`BOSS · KINGPIN${boss?.enraged?' · ENRAGED':''}`,defeated:'KINGPIN DEFEATED!',cleared:'STAGE 1 CLEARED'}[phase];
+    const bossText={warning:'WARNING · BOSS APPROACHING',entrance:'BOSS · WILSON FISK',boss:`BOSS · WILSON FISK${boss?.enraged?' · ENRAGED':''}`,defeated:'WILSON FISK DEFEATED!',cleared:'STAGE 1 CLEARED'}[phase];
     const waveText=g.waves.sandbox?'SANDBOX':bossText ?? `WAVE ${g.waves.wave} / 4 · ${g.enemies.filter(e=>e.health>0).length} ENEMIES${g.waves.transition>0?' / CLEAR!':''}`;
     if(h.wave.textContent!==waveText) h.wave.textContent=waveText;
     this.bossHud(g,boss,phase); this.banner(boss,g.state==='playing'?phase:'');
@@ -118,15 +118,15 @@ export class UI {
   bossTools(g) {
     const boss=g.activeBoss(),alive=Boolean(boss && boss.health>0),row=document.createElement('div'); row.className='dev-boss'; row.dataset.testid='developer-boss-tools';
     const status=document.createElement('p'); status.className='dev-boss-status'; status.dataset.testid='dev-boss-status';
-    status.textContent=alive?`KINGPIN ${boss.health} / ${boss.maxHealth} HP · ${boss.enraged?'ENRAGED (BELOW 50%)':'PHASE 1'} · ${g.waves.phase.toUpperCase()}`:`STAGE 1 BOSS / KINGPIN · ${g.waves.phase==='waves'?(g.waves.sandbox?'SANDBOX':`WAVE ${g.waves.wave}`):g.waves.phase.toUpperCase()}`;
+    status.textContent=alive?`WILSON FISK ${boss.health} / ${boss.maxHealth} HP · ${boss.enraged?'ENRAGED (BELOW 50%)':'PHASE 1'} · ${g.waves.phase.toUpperCase()}`:`STAGE 1 BOSS / WILSON FISK · ${g.waves.phase==='waves'?(g.waves.sandbox?'SANDBOX':`WAVE ${g.waves.wave}`):g.waves.phase.toUpperCase()}`;
     const max=alive?boss.maxHealth:enemyDefinitions.kingpin.health,health=document.createElement('input'); health.type='number'; health.min='1'; health.step='1'; health.max=String(max); health.value=String(Math.floor(max*.45));
     health.dataset.testid='dev-boss-health-value'; health.setAttribute('aria-label','Kingpin health');
     row.append(status,
       this.button('dev-boss','JUMP TO BOSS ENCOUNTER · Shift+3',()=>g.developerAction('boss')),
-      this.button('dev-spawn-kingpin','SPAWN KINGPIN NOW',()=>g.startBossEncounter({intro:false,restore:false})),
+      this.button('dev-spawn-kingpin','SPAWN WILSON FISK NOW',()=>g.startBossEncounter({intro:false,restore:false})),
       this.button('dev-restart-boss','RESTART BOSS FIGHT',()=>g.restartBossFight()),
       this.button('dev-defeat-boss','DEFEAT BOSS',()=>{ if(g.defeatBoss()) this.closeDeveloper(); },!alive),
-      health,this.button('dev-set-boss-health','SET KINGPIN HP',()=>{ if(g.setBossHealth(Number(health.value))) this.refreshDeveloper(g); else this.notify(`Kingpin health must be a whole number from 1 to ${health.max}.`); },!alive),
+      health,this.button('dev-set-boss-health','SET WILSON FISK HP',()=>{ if(g.setBossHealth(Number(health.value))) this.refreshDeveloper(g); else this.notify(`Kingpin health must be a whole number from 1 to ${health.max}.`); },!alive),
       this.button('dev-return-stage','RETURN TO STAGE 1 · WAVE 1',()=>g.developerAction('restart')));
     return row;
   }

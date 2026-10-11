@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('Kingpin illustration covers every encounter pose with the shared renderer', async ({page}) => {
+test('Wilson Fisk illustration covers every encounter pose with the shared renderer', async ({page}) => {
   await page.goto('/');
   await page.evaluate(async () => {
     const {CharacterRenderer}=await import('/src/rendering/CharacterRenderer.js'); const {resolveEnemy}=await import('/src/data/enemies.js');
@@ -14,24 +14,24 @@ test('Kingpin illustration covers every encounter pose with the shared renderer'
     ];
     const cols=4,w=330,h=330,canvas=document.createElement('canvas'); canvas.id='kingpin-atlas'; canvas.width=cols*w; canvas.height=Math.ceil(poses.length/cols)*h;
     canvas.style.cssText=`width:${canvas.width}px;height:${canvas.height}px;display:block`; const c=canvas.getContext('2d');
-    poses.forEach(([label,pose],i)=>{ const x=(i%cols)*w,y=Math.floor(i/cols)*h; c.fillStyle='#152036'; c.fillRect(x+1,y+1,w-2,h-2); c.fillStyle='#e9d7ad'; c.font='13px monospace'; c.fillText(`Kingpin / ${label}`,x+10,y+20);
+    poses.forEach(([label,pose],i)=>{ const x=(i%cols)*w,y=Math.floor(i/cols)*h; c.fillStyle='#152036'; c.fillRect(x+1,y+1,w-2,h-2); c.fillStyle='#e9d7ad'; c.font='13px monospace'; c.fillText(`Wilson Fisk / ${label}`,x+10,y+20);
       renderer.draw(c,{config,time:.4,facing:1,z:0,actionDuration:0,actionTime:0,...pose},x+w*.45,y+h-22,config.scale); });
     document.querySelector('#app').replaceChildren(canvas);
   });
   await page.locator('#kingpin-atlas').screenshot({path:'test-results/kingpin-atlas.png'});
 });
 
-test('Kingpin uses the shared combat engine: damage both ways, resistance, avoidable telegraphs, fair spacing', async ({page}) => {
+test('Wilson Fisk uses the shared combat engine: damage both ways, resistance, avoidable telegraphs, fair spacing', async ({page}) => {
   await page.goto('/');
   const r=await page.evaluate(async () => {
     const {Player}=await import('/src/entities/Player.js'); const {Enemy}=await import('/src/entities/Enemy.js'); const {Boss}=await import('/src/entities/Boss.js');
     const {CombatSystem}=await import('/src/combat/CombatSystem.js'); const {beginAttack,playerAttack}=await import('/src/data/combat.js');
     const {characters}=await import('/src/data/characters.js'); const {resolveEnemy}=await import('/src/data/enemies.js');
     const config=resolveEnemy('kingpin'),dt=1/60,tank={...characters[0],health:5000};
-    // Each hero's ordinary punch damages Kingpin once per swing.
+    // Each hero's ordinary punch damages Wilson Fisk once per swing.
     const heroHits=Object.fromEntries(characters.map(hero=>{ const p=new Player(hero),k=new Boss(config,p.x+70,p.y),combat=new CombatSystem(); beginAttack(p,{...playerAttack(hero,'punch'),active:.4,duration:.6}); for(let i=0;i<40;i++) { k.tickStatus(dt); combat.resolve(dt,p,[k],{}); } return [hero.id,config.health-k.health]; }));
     const push=target=>{ target.receiveDamage(10,new Player(characters[0]),{facing:1,knockback:235}); const x=target.x; for(let i=0;i<60;i++) target.tickStatus(dt); return target.x-x; };
-    // Passive tank: Kingpin approaches and attacks. Each attack may deal damage once, and after any
+    // Passive tank: Wilson Fisk approaches and attacks. Each attack may deal damage once, and after any
     // contact the next active window waits longer than the player's invulnerability.
     const p=new Player(tank),k=new Boss(config,p.x+260,p.y),combat=new CombatSystem(),perAttack=new Map(),moves=new Set(),windups=[],damageTimes=[],activeStarts=[];
     let t=0;
@@ -69,7 +69,7 @@ test('Kingpin uses the shared combat engine: damage both ways, resistance, avoid
   expect(r.blocked).toBe(true); expect(r.deadAttack).toBe(null); expect(r.deadState).toBe('defeated'); expect(r.victimHealth).toBe(140);
 });
 
-test('Kingpin reacts to damage: break-out shove, ranged provocation and a harder phase below 50%', async ({page}) => {
+test('Wilson Fisk reacts to damage: break-out shove, ranged provocation and a harder phase below 50%', async ({page}) => {
   await page.goto('/');
   const r=await page.evaluate(async () => {
     const {Player}=await import('/src/entities/Player.js'); const {Boss}=await import('/src/entities/Boss.js'); const {CombatSystem}=await import('/src/combat/CombatSystem.js');
@@ -126,7 +126,7 @@ test('stage flow: wave 4, warning, entrance, fight, defeat, Stage 1 cleared; dev
   expect(r.developer.saved).toBe(0); expect(r.developer.cleared).toEqual([]);
 });
 
-test('reacting to telegraphs beats Kingpin with every hero without taking slam or charge damage', async ({page}) => {
+test('reacting to telegraphs beats Wilson Fisk with every hero without taking slam or charge damage', async ({page}) => {
   await page.goto('/');
   const results=await page.evaluate(async () => {
     const {Game}=await import('/src/engine/Game.js'); const {characters}=await import('/src/data/characters.js');
@@ -183,27 +183,27 @@ test('developer boss tools, boss HUD, keyboard combat, stage clear and retry in 
   await page.keyboard.press('p'); await page.getByTestId('dev-boss').click();
   await expect(page.getByTestId('boss-banner')).toHaveText('WARNING – BOSS APPROACHING'); await expect(page.getByTestId('boss-hud')).toBeHidden();
   await page.screenshot({path:'test-results/boss-warning.png',fullPage:true});
-  await expect(page.getByTestId('boss-hud')).toBeVisible({timeout:6000}); await expect(page.getByTestId('boss-name')).toHaveText('KINGPIN');
-  await expect(page.getByTestId('boss-banner')).toContainText('KINGPIN'); await page.screenshot({path:'test-results/boss-entrance.png',fullPage:true});
+  await expect(page.getByTestId('boss-hud')).toBeVisible({timeout:6000}); await expect(page.getByTestId('boss-name')).toHaveText('WILSON FISK — THE KINGPIN');
+  await expect(page.getByTestId('boss-banner')).toContainText('WILSON FISK — THE KINGPIN'); await page.screenshot({path:'test-results/boss-entrance.png',fullPage:true});
   await expect.poll(async()=>(await boss()).encounter,{timeout:8000}).toBe('boss');
-  // Keyboard punches damage Kingpin once he is in reach (Axel range 64 + Kingpin body radius 52).
+  // Keyboard punches damage Wilson Fisk once he is in reach (Axel range 64 + Kingpin body radius 52).
   await expect.poll(async()=>{ const b=(await boss()).boss,p=await page.evaluate(()=>window.gameTestAPI.getPlayerSnapshot()); return Math.abs(b.x-p.x)<112 && Math.abs(b.y-p.y)<20; },{timeout:8000}).toBe(true);
   for(let i=0;i<8 && (await boss()).boss.health===1250;i++) { await page.keyboard.press('a'); await page.waitForTimeout(380); }
   expect((await boss()).boss.health).toBeLessThan(1250);
-  // Kingpin damages the player (cheats off).
+  // Wilson Fisk damages the player (cheats off).
   await expect.poll(()=>page.evaluate(()=>window.gameTestAPI.getPlayerHealth()),{timeout:12000}).toBeLessThan(140);
   await page.screenshot({path:'test-results/boss-fight.png',fullPage:true});
-  // Restore health, invincibility, and set Kingpin below 50% from the panel.
+  // Restore health, invincibility, and set Wilson Fisk below 50% from the panel.
   await page.keyboard.press('p'); await page.getByTestId('dev-health').click(); await page.getByTestId('dev-invincible').click(); await expect(page.getByTestId('dev-invincible')).toContainText('✓');
   expect(await page.evaluate(()=>window.gameTestAPI.getPlayerHealth())).toBe(140);
   await page.getByTestId('dev-boss-health-value').fill('9999'); await page.getByTestId('dev-set-boss-health').click(); await expect(page.locator('#toast')).toContainText('whole number');
   await page.getByTestId('dev-boss-health-value').fill('500'); await page.getByTestId('dev-set-boss-health').click();
-  await expect(page.getByTestId('dev-boss-status')).toContainText('KINGPIN 500 / 1250 HP · ENRAGED'); await page.getByTestId('close-developer').click();
+  await expect(page.getByTestId('dev-boss-status')).toContainText('WILSON FISK 500 / 1250 HP · ENRAGED'); await page.getByTestId('close-developer').click();
   await expect(page.locator('#boss-label')).toContainText('ENRAGED'); expect((await boss()).boss.enraged).toBe(true);
   await page.waitForTimeout(700); await page.screenshot({path:'test-results/boss-enraged.png',fullPage:true});
   // Defeat instantly: KO banner, then STAGE 1 CLEARED with final score and both buttons.
   await page.keyboard.press('p'); await page.getByTestId('dev-defeat-boss').click(); await expect(page.locator('#developer')).toBeHidden();
-  await expect(page.getByTestId('boss-banner')).toHaveText('KINGPIN DEFEATED!');
+  await expect(page.getByTestId('boss-banner')).toHaveText('WILSON FISK — THE KINGPIN DEFEATED!');
   await expect(page.getByTestId('result-title')).toHaveText('STAGE 1 CLEARED',{timeout:6000}); await expect(page.getByTestId('final-score')).toContainText('FINAL SCORE');
   await expect(page.getByTestId('retry')).toBeVisible(); await expect(page.getByTestId('return-menu')).toBeVisible(); await expect(page.locator('#screen .note')).toContainText('not saved');
   await page.screenshot({path:'test-results/stage-clear.png',fullPage:true});
@@ -214,7 +214,7 @@ test('developer boss tools, boss HUD, keyboard combat, stage clear and retry in 
   await expect(page.getByTestId('boss-hud')).toBeHidden();
   // Spawn immediately, restart the fight, Shift+3 shortcut, then return to normal Stage 1 waves.
   await page.keyboard.press('p'); await page.getByTestId('dev-spawn-kingpin').click();
-  expect(await boss()).toMatchObject({encounter:'boss',active:true,boss:{name:'Kingpin',health:1250,entering:false}}); await expect(page.getByTestId('boss-hud')).toBeVisible();
+  expect(await boss()).toMatchObject({encounter:'boss',active:true,boss:{name:'Wilson Fisk — The Kingpin',health:1250,entering:false}}); await expect(page.getByTestId('boss-hud')).toBeVisible();
   expect(await setBossHealth(300)).toBe(true); expect(await setBossHealth(0)).toBe(false); expect(await setBossHealth(12.5)).toBe(false);
   await page.keyboard.press('p'); await page.getByTestId('dev-restart-boss').click();
   expect(await boss()).toMatchObject({encounter:'boss',active:true,boss:{health:1250,enraged:false}});
