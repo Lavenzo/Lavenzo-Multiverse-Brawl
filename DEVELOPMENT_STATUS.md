@@ -1,6 +1,82 @@
 # Development status
 
-Current milestone: **Milestone 2 — Multiverse enemy roster, AI and combat**. Milestones 1, 1.5 and 2 are complete within their stated scope. Stop for user review before Milestone 3. City Streets has four playable waves but no final stage boss; the full campaign is not complete.
+Current milestone: **Milestone 3 — Stage 1 boss encounter (Kingpin)**. Milestones 1, 1.5, 2 and 3 are complete within their stated scope. Stage 1 (City Streets) is now a complete stage: four waves, a boss warning, Kingpin's entrance, the boss fight and STAGE 1 CLEARED. **Stop for user review. Stage 2 has not been started.** Stages 2–8 remain unavailable placeholders.
+
+## Milestone 3 completed functionality
+
+- **Kingpin (tier `boss`) in data/enemies.js.**
+  - Stats: 1250 HP, 13 base damage, 78% knockback resistance, 1.42× scale, 52 px body radius, 2000 points.
+  - Moves: Heavy Punch, Hammer Hook, Bull Charge, Ground Slam, plus two reactions (Rage Shove and the Kingpin Rage roar).
+  - Move timings, armor/guard flags, timers and phase-2 modifiers are all data in `config.boss`.
+  - Roman and Seth stay regular, and Venom stays a developer-test mini-boss.
+- **entities/Boss.js extends Enemy and reuses beginAttack, CombatSystem active windows and Fighter damage/invulnerability.** No separate combat system.
+  - **Movement:** approaches and aligns lanes, and uses a deterministic pattern. Phase 1 runs punch → punch → hook, then a finisher that alternates between the Ground Slam and a backstep into the Bull Charge. He also charges players who keep their distance or hit him from range.
+  - **Charge:** travels during its active window and stops on contact or at a wall.
+  - **Reactions to damage:** short flinches, super armor on the hook, charge and slam, and a guarded Rage Shove after rapid hits (anti stun-lock).
+  - **Rage phase at ≤ 50% HP:** a guarded roar that pushes back with no damage, after which he is faster, has shorter recovery and windups, an armored jab, a two-hit string and a widening shockwave slam. A missed charge chains into a slam.
+  - **Fairness:** every windup is at least 0.38 s. After any contact he backs off for longer than the player's invulnerability, follow-ups are dropped once a hit lands, and a dead boss never attacks.
+- **Stage flow (StageManager phases):** waves → warning (2.4 s "WARNING – BOSS APPROACHING") → entrance → boss → defeated → cleared.
+  - Entrance: Kingpin walks in invulnerable from 600 px away under a name card while the bar fills.
+  - Defeat: a "KINGPIN DEFEATED!" banner plays over his 1.4 s knockdown. After 2.8 s the STAGE 1 CLEARED screen shows the final score with Retry Stage 1 and Main Menu.
+  - The Waves Cleared screen is removed, and only the encounter boss clears the stage.
+- **Artwork:** Kingpin is an original articulated Canvas illustration in the shared CharacterRenderer: heavy barrel build, white suit, purple shirt and tie, bald head, enraged red face with steam. It has 12 posed states, each keyframed from the live attack timing: idle, walk, intro, punch, hook, charge, slam, shove, roar, backstep, hurt and defeated.
+  - The Renderer draws ground telegraphs sized to the real hit checks: a lane strip with chevrons for the charge, and a ring or expanding shockwave for the slam.
+  - It also draws a red "!" badge on boss windups and a warning-phase vignette.
+  - The optional PNG slot is `assetConfig.enemies.kingpin`, with vector fallback preserved.
+- **HUD:** a persistent DOM boss bar with name, phase label, damage trail and HP text, and a persistent banner node that changes only on phase changes. Other bosses and mini-bosses keep canvas bars, moved below the HUD bar when needed. The wave HUD text follows the boss phases.
+- **Developer tools** (all validated Game methods, Developer Mode only):
+  - Jump to boss encounter (Shift+3, previously deferred), Spawn Kingpin now, Restart boss fight.
+  - Set Kingpin HP (whole numbers 1..max; crossing 50% triggers the rage phase), Defeat boss.
+  - Return to Stage 1 · Wave 1, plus the existing Restore health and Invincibility.
+  - API: `getBoss`, `spawnBoss({intro, restore})`, `restartBoss`, `setBossHealth`, `defeatBoss`, `returnToStage`. Also `getWave().phase`, and `isBossActive` now covers bosses.
+- **Progress:** normal-mode stage clears save the best score and `clearedStages: [1]`. Developer runs never write storage, and no unfinished stage unlocks. Retry and Enter restart Stage 1 from Wave 1.
+
+## Milestone 3 files changed
+
+- Added src/entities/Boss.js and tests/boss.spec.js.
+- Extended src/data/enemies.js, waves.js, stages.js and assets.js; src/engine/Game.js and Renderer.js; src/systems/StageManager.js and ProgressManager.js; src/rendering/CharacterRenderer.js; src/ui/UI.js; and src/styles/main.css.
+- Unchanged: CombatSystem, Fighter, Enemy, Player, CollisionManager, InputManager, GameLoop, CityRenderer, AssetManager, character data and controls. Existing heroes, enemy art and enemy/wave difficulty are untouched.
+- Three existing assertions that encoded the deferred boss were updated to the new required flow:
+  - smoke: `dev-boss` is now enabled;
+  - combat: skipping Wave 4 now shows the boss warning, and defeating Kingpin shows STAGE 1 CLEARED;
+  - lifecycle: the scripted runs end in `stageClear` with 3420 points and the full phase sequence.
+  The combat test's Enter-to-restart check now polls, because the key is consumed on the next animation frame (it failed 2 in 8 serial runs before the change).
+- Updated README.md, AGENTS.md and this document. No dependencies, external art or audio. No commits, pushes or deployments.
+
+## Milestone 3 validation
+
+- `npm run build`: passed (Vite 7.3.7, 26 modules).
+- `npm test`: **19 passed**: 12 existing plus 7 focused boss tests, about 31 s. The full suite repeated twice across 8 workers gave 38/38. The three live/stage-flow developer tests run 8× serially gave 24/24. `git diff --check` is clean.
+- Boss tests verify:
+  - every hero's punch damages Kingpin once (Axel 28, Leonardo 24, Spider-Man 20, Cyclops 25), and his knockback is under 30% of Roman's;
+  - Kingpin damages the player, with at most one damage event per attack, windups of at least 0.38 s, and the next active window more than 1.1 s after any landed hit;
+  - jumping and lane changes avoid the slam, and leaving the lane or jumping avoids the charge;
+  - armor on hook/charge/slam but not the phase-1 jab, invulnerability during the entrance, and a dead boss is inert;
+  - the break-out shove, ranged provocation, the rage-phase roar, faster armored phase-2 moves, and the shockwave reaching 235;
+  - the phase sequence waves → warning → entrance → boss → defeated → cleared, with the normal run saving once and recording `[1]`, and the developer run saving nothing.
+- Live browser checks:
+  - normal-mode Shift+3 does nothing;
+  - warning banner text, boss HUD and name card all appear;
+  - keyboard punches damage Kingpin and Kingpin damages the player;
+  - panel controls work: restore, invincibility, invalid and valid HP, enraged HUD, defeat, KO banner, STAGE 1 CLEARED with final score and both buttons, Retry back to Wave 1 at full health, spawn/restart/Shift+3/return;
+  - the API is removed on leaving developer mode, saved progress is unchanged, and there are no page or console errors.
+- Balance simulations, deterministic and cheat-free:
+  - **Existing lifecycle bot, no dodging:** clears all four waves and Kingpin with every hero. Axel ends with 3 lives and 30 HP, Leonardo 3 lives and 9 HP, Spider-Man 2 lives and Cyclops 2 lives. Boss segment 21–26 s including the intro; Kingpin enrages after 10–13 s.
+  - **Telegraph-reacting bot:** wins with every hero taking zero Kingpin damage over 32–41 s boss segments, while seeing all seven moves (Heavy Punch, Hammer Hook, Ground Slam, Backstep, Bull Charge, Rage Shove, Kingpin Rage).
+  - Bots attack frame-perfectly, so human fights should run longer (roughly 45–60 s, estimated).
+- Reviewed screenshots: kingpin-atlas.png (16 poses), boss-warning.png, boss-entrance.png, boss-fight.png, boss-enraged.png, stage-clear.png and boss-telegraphs.png, plus the existing developer-combat.png panel layout. Review led to widening Kingpin's body and stand-off so he no longer overlaps heroes, a clean-shaven jawline, a rounder torso and shorter speed lines.
+
+## Milestone 3 known limitations / next task
+
+- **Stop for user review. Do not begin Stage 2.** After approval, please give manual playtest feedback on Kingpin's difficulty and readability. The tuning values are all in `config.boss` and the move profiles.
+- Balance is validated by deterministic bots, not human playtesting. Attack reach uses the existing lane/height/range checks, not limb-shaped hitboxes. The phase-2 shockwave is an expanding radial hit range that hits each target once, not a travelling projectile.
+- The arena is not screen-locked during the fight; walking away invites charges. If the player is near the far-right end of the street, Kingpin fades in on-screen instead of walking in from off-screen.
+- Only the HUD boss gets the large bar. A second sandbox-spawned Kingpin uses a small overhead bar. Developer "Defeat Boss" awards no points, matching "Defeat regular enemies".
+- Retry after Game Over or Stage Clear restarts from Wave 1; there is no continue-at-boss. `clearedStages` is recorded, but Stage 2 stays locked and unimplemented.
+- The earlier plan named a "Street Enforcer" Stage 1 boss. The Milestone 3 brief specified Kingpin, so Street Enforcer was not added.
+- No audio: boss music and SFX remain deferred with AudioManager. Artwork is original vector illustration.
+
+## Milestone 2 historical record
 
 ## Milestone 2 completed functionality
 

@@ -6,6 +6,7 @@ import { GameLoop } from './GameLoop.js';
 import { Renderer } from './Renderer.js';
 import { ProgressManager } from '../systems/ProgressManager.js';
 import { Enemy } from '../entities/Enemy.js';
+import { Boss } from '../entities/Boss.js';
 import { resolveEnemy } from '../data/enemies.js';
 import { CombatSystem } from '../combat/CombatSystem.js';
 import { StageManager } from '../systems/StageManager.js';
@@ -22,16 +23,43 @@ export class Game {
     if (action === 'health' && this.player) { this.player.health = this.character.health; this.player.energy = 100; this.player.stun=0; this.player.deathTime=0; this.player.invulnerability=.8; this.player.attack=null; this.player.state='idle'; this.player.actionTime=0; return true; }
     if(action==='defeat') { for(const e of this.enemies) if(e.config.tier==='regular') { e.invulnerability=0; e.receiveDamage(e.health,this.player,{knockback:0,facing:this.player.facing}); e.scored=true; } return true; }
     if(action==='clear') { this.waves.clearEnemies(); return true; }
-    if(action==='skipWave') return this.waves.skipWave();
+    if(action==='skipWave') { const skipped=this.waves.skipWave(); if(!skipped) this.ui.notify('The boss encounter is not a wave. Use the Kingpin boss tools.'); return skipped; }
     if(action==='restartWave') return this.selectWave(this.waves.wave);
-    this.ui.notify('The Stage 1 boss and stage navigation remain deferred. Use wave controls to test combat.'); return false;
+    if(action==='boss') return this.startBossEncounter();
+    this.ui.notify('Stage navigation remains deferred: Stages 2–8 are not implemented yet.'); return false;
   }
   createEnemy(identity,difficulty=1,position={}) {
     const config=resolveEnemy(identity,difficulty);
     if(!config || !this.player || this.enemies.filter(e=>e.health>0).length>=18) return false;
     const x=position.x ?? Math.min(2260,this.player.x+190),y=position.y ?? this.player.y;
     if(!Number.isFinite(x)||!Number.isFinite(y)) return false;
-    const enemy=new Enemy(config,x,y,this.enemies.length); this.enemies.push(enemy); return enemy;
+    const Controller=config.tier==='boss'?Boss:Enemy;
+    const enemy=new Controller(config,x,y,this.enemies.length); this.enemies.push(enemy); return enemy;
+  }
+  // The Stage 1 encounter boss, kept through its defeat sequence, else any living boss-tier spawn.
+  activeBoss() {
+    const boss=this.waves.boss;
+    if(boss && this.enemies.includes(boss)) return boss;
+    return this.enemies.find(e=>e.health>0 && e.config.tier==='boss') || null;
+  }
+  // Developer boss tools. intro:false skips warning/entrance; restore:false keeps current health.
+  startBossEncounter(options={}) {
+    if(!this.developerMode || !this.player || !options || typeof options!=='object') return false;
+    if(options.restore!==false || this.player.health<=0) this.developerAction('health');
+    this.state='playing'; this.input.clear();
+    const started=this.waves.beginBoss({intro:options.intro!==false});
+    this.ui.closeDeveloper(); this.ui.screen(this); return started;
+  }
+  restartBossFight() { return this.startBossEncounter({intro:false,restore:true}); }
+  setBossHealth(value) {
+    const boss=this.activeBoss();
+    if(!this.developerMode || !boss || boss.health<=0 || !Number.isInteger(value) || value<1 || value>boss.maxHealth) return false;
+    boss.setHealth(value); return true;
+  }
+  defeatBoss() {
+    const boss=this.activeBoss();
+    if(!this.developerMode || !boss || boss.health<=0) return false;
+    boss.invulnerability=0; boss.receiveDamage(boss.health,this.player,{knockback:0,facing:this.player.facing}); boss.scored=true; return true;
   }
   spawnEnemy(identity,options={}) {
     if(!this.developerMode || !this.player || !options || typeof options!=='object') return false;
@@ -42,14 +70,22 @@ export class Game {
     if(!this.developerMode || !this.player || !Number.isInteger(number)||number<1||number>4) return false;
     this.developerAction('health'); this.state='playing'; this.input.clear(); this.waves.startWave(number); this.ui.screen(this); return true;
   }
-  finishWaves() { this.state='waveClear'; this.input.clear(); this.ui.closeDeveloper(); this.saveBestScore(); this.ui.screen(this); }
-  saveBestScore() { if(this.developerMode) return; this.progress.data.bestScore=Math.max(this.progress.data.bestScore,this.score); this.progress.save(false); }
+  // Four waves complete: the Kingpin encounter follows (the old Waves Cleared screen is gone).
+  finishWaves() { return this.waves.beginBoss(); }
+  finishStage() { this.state='stageClear'; this.input.clear(); this.ui.closeDeveloper(); this.saveBestScore(true); this.ui.screen(this); }
+  // Normal runs only. Clearing Stage 1 is recorded, but no unfinished stage is unlocked.
+  saveBestScore(stageCleared=false) {
+    if(this.developerMode) return;
+    const data=this.progress.data; data.bestScore=Math.max(data.bestScore,this.score);
+    if(stageCleared) data.clearedStages=[...new Set([...(data.clearedStages || []),this.stage.number])];
+    this.progress.save(false);
+  }
   updateCombat(dt) {
     this.player.update(dt,this.input,this.cheats);
     for(const enemy of this.enemies) enemy.update(dt,this.player);
     this.combat.update(dt,this.player,this.enemies,this.cheats);
     for(const enemy of this.enemies) if(enemy.health<=0 && !enemy.scored) { this.score+=enemy.config.score; enemy.scored=true; }
-    this.enemies=this.enemies.filter(e=>e.health>0 || e.deathTime<1.2);
+    this.enemies=this.enemies.filter(e=>e.health>0 || e.deathTime<(e.config.corpseTime ?? 1.2));
     if(this.player.health<=0) {
       if(this.player.deathTime>.9) {
         if(this.lives>1 || this.cheats.infiniteLives) { const {x,y}=this.player; if(!this.cheats.infiniteLives) this.lives--; this.player=new Player(this.character); this.player.x=x; this.player.y=y; this.player.invulnerability=2; }
@@ -59,16 +95,18 @@ export class Game {
   }
   syncAPI() {
     if (!this.developerMode && import.meta.env.VITE_ENABLE_TEST_API !== 'true') { delete window.gameTestAPI; return; }
-    window.gameTestAPI = Object.freeze({ getGameState: () => this.state, getCurrentStage: () => this.stage.number, getSelectedCharacter: () => this.character.id, getPlayerHealth: () => this.player?.health ?? 0, getEnemyCount: () => this.enemies.filter(e=>e.health>0).length, isBossActive: () => this.enemies.some(e=>e.health>0&&e.config.tier==='miniboss'), startStage: n => this.startStage(n), skipStage: () => this.developerAction('skip'), spawnBoss: () => this.developerAction('boss'), setInvincible: enabled => this.toggleCheat('invincible', enabled), resetGame: () => this.resetGame(), getPlayerSnapshot: () => this.player ? { x: this.player.x, y: this.player.y, z: this.player.z, facing: this.player.facing, state: this.player.state, energy: this.player.energy, health:this.player.health, lives:this.lives, score:this.score } : null,
+    window.gameTestAPI = Object.freeze({ getGameState: () => this.state, getCurrentStage: () => this.stage.number, getSelectedCharacter: () => this.character.id, getPlayerHealth: () => this.player?.health ?? 0, getEnemyCount: () => this.enemies.filter(e=>e.health>0).length, isBossActive: () => this.enemies.some(e=>e.health>0&&['miniboss','boss'].includes(e.config.tier)), startStage: n => this.startStage(n), skipStage: () => this.developerAction('skip'), spawnBoss: (options={}) => this.startBossEncounter(options), setInvincible: enabled => this.toggleCheat('invincible', enabled), resetGame: () => this.resetGame(), getPlayerSnapshot: () => this.player ? { x: this.player.x, y: this.player.y, z: this.player.z, facing: this.player.facing, state: this.player.state, energy: this.player.energy, health:this.player.health, lives:this.lives, score:this.score } : null,
       getEnemies:()=>this.enemies.map(e=>({id:e.id,name:e.config.name,tier:e.config.tier,health:e.health,maxHealth:e.maxHealth,x:e.x,y:e.y,state:e.state,aiState:e.aiState,difficulty:e.config.difficulty,attack:e.attack?.name||null})),
-      getWave:()=>({number:this.waves.wave,sandbox:this.waves.sandbox,complete:this.waves.complete}),
+      getWave:()=>({number:this.waves.wave,sandbox:this.waves.sandbox,complete:this.waves.complete,phase:this.waves.phase}),
       spawnEnemy:(name,options)=>this.spawnEnemy(name,options), setEnemyDifficulty:value=>this.setEnemyDifficulty(value), clearEnemies:()=>this.developerAction('clear'), skipWave:()=>this.developerAction('skipWave'), restartWave:()=>this.developerAction('restartWave'), selectWave:number=>this.selectWave(number), setCheat:(name,value)=>this.toggleCheat(name,value),
+      getBoss:()=>{ const b=this.activeBoss(); return {encounter:this.waves.phase,active:Boolean(b&&b.health>0),boss:b?{id:b.id,name:b.config.name,tier:b.config.tier,health:b.health,maxHealth:b.maxHealth,enraged:b.enraged,state:b.state,aiState:b.aiState,attack:b.attack?.name||null,entering:Boolean(b.entrance),invulnerable:b.invulnerability>0,x:b.x,y:b.y,difficulty:b.config.difficulty}:null}; },
+      restartBoss:()=>this.restartBossFight(), setBossHealth:value=>this.setBossHealth(value), defeatBoss:()=>this.defeatBoss(), returnToStage:()=>this.developerAction('restart'),
     });
   }
   update(dt) {
     if (this.input.take('confirm')) {
       if (this.state === 'menu') this.selectMode(false);
-      else if (['select','gameOver','waveClear'].includes(this.state)) this.startStage();
+      else if (['select','gameOver','stageClear'].includes(this.state)) this.startStage();
       else if(this.state==='paused') { this.state='playing'; this.ui.screen(this); }
     }
     if (this.state === 'select') { const direction = Number(this.input.take('right')) - Number(this.input.take('left')); if (direction) { this.character = characters[(characters.indexOf(this.character) + direction + 4) % 4]; this.ui.screen(this); } }

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('all four heroes can clear four waves without cheats in deterministic combat simulation',async({page})=>{
+test('all four heroes clear four waves and defeat Kingpin without cheats in deterministic combat simulation',async({page})=>{
   await page.goto('/');
   const results=await page.evaluate(async()=>{
     const {Game}=await import('/src/engine/Game.js');const {characters}=await import('/src/data/characters.js');const {CombatSystem}=await import('/src/combat/CombatSystem.js');const {StageManager}=await import('/src/systems/StageManager.js');
@@ -8,8 +8,9 @@ test('all four heroes can clear four waves without cheats in deterministic comba
       let saved=0,dx=0,dy=0,action=''; const game=Object.create(Game.prototype);
       Object.assign(game,{character,developerMode:false,cheats:{},enemies:[],combat:new CombatSystem(),input:{clear(){},down(key){return key==='right'?dx>0:key==='left'?dx<0:key==='up'?dy<0:key==='down'?dy>0:false;},take(key){return key===action;}},ui:{closeDeveloper(){},screen(){}},progress:{data:{bestScore:0},save(){saved++;}}});
       game.waves=new StageManager(game);game.startStage(1);
-      let elapsed=0;
+      let elapsed=0; const phases=new Set(),states=new Set();
       while(game.state==='playing' && elapsed<100) {
+        phases.add(game.waves.phase); states.add(game.state);
         const p=game.player,target=game.enemies.filter(e=>e.health>0).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];
         dx=0;dy=0;action='';
         if(target) {
@@ -21,11 +22,15 @@ test('all four heroes can clear four waves without cheats in deterministic comba
         }
         game.updateCombat(1/60);elapsed+=1/60;
       }
-      return {hero:character.id,state:game.state,lives:game.lives,health:game.player.health,score:game.score,saved,seconds:Math.round(elapsed)};
+      return {hero:character.id,state:game.state,lives:game.lives,health:game.player.health,score:game.score,saved,seconds:Math.round(elapsed),phases:[...phases],states:[...states],boss:game.waves.boss?.config.id,bossHealth:game.waves.boss?.health,cleared:game.progress.data.clearedStages};
     });
   });
   await test.info().attach('balance-simulation',{body:JSON.stringify(results,null,2),contentType:'application/json'});
-  for(const result of results) { expect(result.state,JSON.stringify(result)).toBe('waveClear');expect(result.score).toBe(1420);expect(result.saved).toBe(1);expect(result.lives).toBeGreaterThan(0); }
+  // 1420 from the four waves + 2000 for Kingpin. Waves Cleared no longer exists; the boss phases must occur.
+  for(const result of results) {
+    expect(result.state,JSON.stringify(result)).toBe('stageClear');expect(result.score).toBe(3420);expect(result.saved).toBe(1);expect(result.lives).toBeGreaterThan(0);
+    expect(result.phases).toEqual(['waves','warning','entrance','boss','defeated']); expect(result.states).toEqual(['playing']); expect(result.boss).toBe('kingpin'); expect(result.bossHealth).toBe(0); expect(result.cleared).toEqual([1]);
+  }
 });
 
 test('player defeat consumes lives, game over/retry works, infinite lives stays isolated',async({page})=>{

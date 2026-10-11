@@ -90,10 +90,15 @@ test('developer enemy controls, live keyboard combat, wave controls and progress
   await page.keyboard.press('p'); await page.screenshot({path:'test-results/developer-combat.png',fullPage:true}); await page.getByTestId('close-developer').click();
   await page.keyboard.press('p'); await page.getByTestId('dev-restart-wave').click(); expect(await page.evaluate(()=>window.gameTestAPI.getWave().number)).toBe(3);
   await page.keyboard.press('p'); await page.getByTestId('dev-skip-wave').click(); expect(await page.evaluate(()=>window.gameTestAPI.getWave().number)).toBe(4);
-  await page.keyboard.press('p'); await page.getByTestId('dev-skip-wave').click(); await expect(page.getByTestId('retry')).toBeVisible();
+  // Skipping the final wave leads into the Kingpin warning; only his defeat shows the completion screen.
+  await page.keyboard.press('p'); await page.getByTestId('dev-skip-wave').click();
+  await expect(page.getByTestId('boss-banner')).toContainText('BOSS APPROACHING'); expect((await page.evaluate(()=>window.gameTestAPI.getWave())).phase).toBe('warning');
+  await page.evaluate(()=>{window.gameTestAPI.spawnBoss({intro:false});window.gameTestAPI.defeatBoss();}); await expect(page.getByTestId('retry')).toBeVisible();
   await page.getByTestId('retry').click(); expect(await page.evaluate(()=>window.gameTestAPI.getWave().number)).toBe(1); expect(await page.evaluate(()=>window.gameTestAPI.getPlayerHealth())).toBe(140);
-  await page.evaluate(()=>{window.gameTestAPI.selectWave(4);window.gameTestAPI.skipWave();}); await page.keyboard.press('Enter');
-  expect(await page.evaluate(()=>window.gameTestAPI.getGameState())).toBe('playing'); expect(await page.evaluate(()=>window.gameTestAPI.getWave().number)).toBe(1);
+  await page.evaluate(()=>{window.gameTestAPI.selectWave(4);window.gameTestAPI.spawnBoss({intro:false});window.gameTestAPI.defeatBoss();});
+  // Enter is consumed on the next animation frame, so poll for the restarted run.
+  await expect(page.getByTestId('result-title')).toHaveText('STAGE 1 CLEARED'); await page.keyboard.press('Enter');
+  await expect.poll(()=>page.evaluate(()=>window.gameTestAPI.getGameState())).toBe('playing'); expect(await page.evaluate(()=>window.gameTestAPI.getWave().number)).toBe(1);
   expect(await page.evaluate(()=>window.gameTestAPI.spawnEnemy('Thanos'))).toBe(false); expect(await page.evaluate(()=>window.gameTestAPI.setEnemyDifficulty(99))).toBe(false);
   await page.keyboard.press('Escape');
   await page.getByTestId('return-menu').click(); expect(await page.evaluate(()=>typeof window.gameTestAPI)).toBe('undefined'); expect(await page.evaluate(()=>localStorage.getItem('lavenzo-progress'))).toBe(progress);

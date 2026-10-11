@@ -48,9 +48,47 @@ function sword(c, hand, angle) {
   shape(c,[[-3,-18],[-2,-78],[0,-89],[4,-78],[4,-18]],'#d1e6ea');
   line(c,[[1,-20],[1,-77]],'#fff',1); c.restore();
 }
+function burst(c, at, size = 1, color = '#fff3b4') {
+  const [x,y] = at, s = size;
+  shape(c,[[x,y-14*s],[x+4*s,y-4*s],[x+15*s,y],[x+4*s,y+4*s],[x,y+14*s],[x-4*s,y+4*s],[x-15*s,y],[x-4*s,y-4*s]],color,null);
+}
+
+// Kingpin: heavy white-suited boss with his own proportions, drawn with the same helpers and outline style.
+const kingpinPalette = { suit:'#f1ede3', suitShade:'#cbc4b7', suitDeep:'#a39c90', shirt:'#6b3e90', shirtShade:'#46285f', tie:'#2d1a3c', skin:'#e3ae88', skinShade:'#b07a5a', rage:'#e8977c', rageShade:'#b5604c', shoe:'#2a2330', gold:'#e9c46c', gem:'#c3f0ff' };
+const mix = (a,b,t) => [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t];
+const smooth = t => { t = Math.max(0,Math.min(1,t)); return t*t*(3-2*t); };
+// ready = end of windup, strike = active window. Legs are feet-relative; arms are in upper-body space.
+const kingpinKeys = {
+  punch: { ready: { lean:-.07, bodyY:2, frontElbow:[10,-108], frontHand:[-2,-122], backElbow:[16,-104], backHand:[32,-106] },
+    strike: { lean:.14, frontElbow:[58,-121], frontHand:[92,-123], backElbow:[-34,-104], backHand:[-30,-86], frontKnee:[27,-34], frontFoot:[34,-3] } },
+  strong: { ready: { lean:-.15, frontElbow:[-6,-132], frontHand:[-32,-142], backElbow:[20,-102], backHand:[32,-114] },
+    strike: { lean:.22, frontElbow:[54,-142], frontHand:[86,-134], backElbow:[-36,-106], backHand:[-34,-84], frontKnee:[27,-34], frontFoot:[34,-3] } },
+  charge: { ready: { lean:.32, bodyY:10, frontElbow:[30,-110], frontHand:[42,-92], backElbow:[-28,-104], backHand:[-14,-90], backKnee:[-32,-28], backFoot:[-42,-3], frontKnee:[30,-30], frontFoot:[32,-3] },
+    strike: { lean:.5, bodyY:6, frontElbow:[48,-116], frontHand:[38,-138], backElbow:[-32,-110], backHand:[-22,-128] } },
+  slam: { ready: { lean:-.12, bodyY:-4, head:-.14, frontElbow:[26,-176], frontHand:[12,-206], backElbow:[-14,-172], backHand:[4,-208] },
+    strike: { lean:.62, bodyY:14, head:.1, frontElbow:[56,-100], frontHand:[78,-64], backElbow:[44,-98], backHand:[68,-62], backKnee:[-32,-30], backFoot:[-30,-3], frontKnee:[32,-30], frontFoot:[30,-3] } },
+  shove: { ready: { lean:-.1, frontElbow:[16,-104], frontHand:[30,-114], backElbow:[-12,-100], backHand:[22,-104] },
+    strike: { lean:.22, frontElbow:[54,-114], frontHand:[88,-110], backElbow:[42,-102], backHand:[78,-98], frontKnee:[27,-34], frontFoot:[36,-3] } },
+  roar: { ready: { lean:.12, bodyY:4, frontElbow:[36,-106], frontHand:[30,-92], backElbow:[-14,-100], backHand:[20,-94] },
+    strike: { lean:-.18, head:-.3, frontElbow:[50,-152], frontHand:[66,-180], backElbow:[-44,-150], backHand:[-60,-176] } },
+};
+function blendPose(from, to, t) {
+  const out = { ...from };
+  for (const [key,value] of Object.entries(to)) out[key] = Array.isArray(value) ? mix(from[key],value,t) : (from[key] ?? 0)+(value-(from[key] ?? 0))*t;
+  return out;
+}
+// Attack timing drives the pose so windups read clearly. Previews without an attack show the strike.
+function attackStage(actor) {
+  const a = actor.attack;
+  if (!a) return actor.actionTime > 0 ? { stage:'active', k:1 } : { stage:'recover', k:1 };
+  if (a.elapsed < a.windup) return { stage:'windup', k:a.elapsed/a.windup };
+  if (a.elapsed < a.windup+a.active) return { stage:'active', k:(a.elapsed-a.windup)/a.active };
+  return { stage:'recover', k:Math.min(1,(a.elapsed-a.windup-a.active)/Math.max(.01,a.duration-a.windup-a.active)) };
+}
 
 export class CharacterRenderer {
   draw(c, actor, x, y, scale = 1) {
+    if (actor.config.id === 'kingpin') { this.kingpin(c,actor,x,y,scale); return; }
     const p = palettes[actor.config.id] || palettes.axel;
     const id = actor.config.id, state = actor.state;
     const walk = state === 'walk', jumping = state === 'jump' || actor.z > 0;
@@ -239,6 +277,150 @@ export class CharacterRenderer {
         c.strokeStyle='#101c30'; c.lineWidth=10-i*2; c.stroke(); c.strokeStyle='#9caec5'; c.lineWidth=2; c.stroke();
       }
     } c.restore();
+  }
+
+  kingpinPose(actor, state, stage, k) {
+    const time = actor.time || 0, breath = Math.sin(time*2.4);
+    const base = { lean:0, bodyY:breath*1.2, head:0, backKnee:[-22,-34], backFoot:[-26,-3], frontKnee:[22,-33], frontFoot:[27,-3],
+      backElbow:[-41,-98], backHand:[-37,-73], frontElbow:[42,-101], frontHand:[45,-81] };
+    if (state === 'walk') {
+      const s = Math.sin(time*7.5), lift = v => -3-Math.max(0,v)*7;
+      return { ...base, lean:.04, bodyY:Math.abs(Math.cos(time*7.5))*2.4, backFoot:[-26-s*17,lift(s)], frontFoot:[27+s*17,lift(-s)], backKnee:[-20-s*9,-35], frontKnee:[23+s*9,-35],
+        backElbow:[-41+s*5,-98], backHand:[-37+s*10,-73], frontElbow:[42-s*5,-101], frontHand:[45-s*10,-81] };
+    }
+    if (state === 'intro') {
+      const progress = actor.actionDuration ? 1-actor.actionTime/actor.actionDuration : .8;
+      return progress < .5 ? { ...base, frontElbow:[34,-108], frontHand:[22,-126], backElbow:[-20,-100], backHand:[10,-112] }
+        : { ...base, frontElbow:[36,-100], frontHand:[30,-97+Math.sin(time*16)*2], backElbow:[-6,-96], backHand:[20,-99] };
+    }
+    if (state === 'hurt') return { ...base, lean:-.2, head:-.18, frontElbow:[36,-140], frontHand:[52,-156], backElbow:[-42,-110], backHand:[-52,-90] };
+    if (state === 'backstep') return { ...base, lean:-.12, bodyY:3, frontElbow:[38,-118], frontHand:[32,-138], backElbow:[10,-108], backHand:[26,-120], backKnee:[-28,-32], backFoot:[-36,-3], frontKnee:[18,-36], frontFoot:[20,-7] };
+    if (state === 'defeated') return { ...base, bodyY:0, head:-.25, frontElbow:[44,-104], frontHand:[56,-82], backElbow:[-44,-112], backHand:[-60,-122] };
+    const keys = kingpinKeys[state]; if (!keys) return base;
+    const ready = blendPose(base,keys.ready,1), strike = blendPose(ready,keys.strike,1);
+    let pose = stage === 'windup' ? blendPose(base,keys.ready,smooth(k)) : stage === 'active' ? blendPose(ready,keys.strike,smooth(Math.min(1,k*3)))
+      : blendPose(strike,base,smooth(state === 'slam' ? (k-.35)/.65 : k));
+    if (state === 'charge' && stage === 'active') {
+      const s = Math.sin(time*24);
+      pose = { ...pose, backFoot:[-30-s*22,-3-Math.max(0,s)*10], frontFoot:[30+s*22,-3-Math.max(0,-s)*10], backKnee:[-26-s*12,-34], frontKnee:[30+s*12,-36] };
+    }
+    if (state === 'charge' && stage === 'windup') pose.backFoot = [pose.backFoot[0]+Math.sin(time*26)*4, pose.backFoot[1]-Math.max(0,Math.sin(time*26))*6];
+    return pose;
+  }
+
+  kingpin(c, actor, x, y, scale = 1) {
+    const k = kingpinPalette, time = actor.time || 0, enraged = Boolean(actor.enraged);
+    const state = actor.state === 'strongAttack' ? 'strong' : actor.state, { stage, k: progress } = attackStage(actor);
+    const P = this.kingpinPose(actor,state,stage,progress), skin = enraged ? k.rage : k.skin, shade = enraged ? k.rageShade : k.skinShade;
+    const open = state === 'hurt' || (state === 'roar' && stage !== 'windup') || (['shove','slam'].includes(state) && stage === 'active');
+    c.save(); c.translate(x,y); c.scale((actor.facing || 1)*scale,scale);
+    if (enraged && state !== 'defeated') {
+      const glow = c.createRadialGradient(4,-110,12,4,-110,125), pulse = .5+.5*Math.sin(time*9);
+      glow.addColorStop(0,`rgba(255,70,62,${.24+.14*pulse})`); glow.addColorStop(1,'rgba(255,70,62,0)'); c.fillStyle = glow; c.fillRect(-130,-240,268,250);
+    }
+    this.kingpinGround(c,actor,state,stage,time);
+    if (state === 'defeated') { const f = actor.actionDuration && actor.actionTime > 0 ? 1-actor.actionTime/actor.actionDuration : 1, fall = f*f; c.translate(88*fall,-20*fall); c.rotate(-1.42*fall); }
+    if (state === 'hurt') c.translate(-6,1);
+    if (state === 'roar' && stage !== 'windup') c.translate(Math.sin(time*70)*1.6,0);
+    const hipY = -64+P.bodyY;
+    limb(c,[-15,hipY],P.backKnee,P.backFoot,28,k.suitShade,k.suitDeep); this.kingpinShoe(c,P.backFoot);
+    limb(c,[14,hipY],P.frontKnee,P.frontFoot,30,k.suit,k.suitShade); this.kingpinShoe(c,P.frontFoot);
+    line(c,[mix([14,hipY],P.frontKnee,.3),mix(P.frontKnee,P.frontFoot,.75)],k.suitShade,1.5);
+    c.save(); c.translate(0,hipY); c.rotate(P.lean); c.translate(0,64);
+    this.kingpinArm(c,[-27,-124],P.backElbow,P.backHand,k.suitShade,k.suitDeep,shade,false);
+    this.kingpinTorso(c);
+    this.kingpinHead(c,P,skin,shade,enraged,open,time);
+    this.kingpinArm(c,[26,-126],P.frontElbow,P.frontHand,k.suit,k.suitShade,skin,true);
+    this.kingpinEffects(c,actor,state,stage,P,time);
+    c.restore(); c.restore();
+  }
+  kingpinShoe(c, foot) {
+    c.save(); c.translate(...foot);
+    shape(c,[[-13,-11],[8,-12],[15,-6],[25,-2],[24,5],[-14,5],[-16,-2]],kingpinPalette.shoe);
+    line(c,[[-12,3],[23,3]],'#120e18',2); line(c,[[2,-8],[12,-6]],'#ffffff55',2); c.restore();
+  }
+  kingpinArm(c, shoulder, elbow, hand, cloth, clothShade, fist, front) {
+    const k = kingpinPalette;
+    limb(c,shoulder,elbow,hand,front ? 27 : 25,cloth,clothShade);
+    const angle = Math.atan2(hand[1]-elbow[1],hand[0]-elbow[0]), ux = Math.cos(angle), uy = Math.sin(angle);
+    const cuff = [hand[0]-ux*12,hand[1]-uy*12];
+    segment(c,cuff,[hand[0]-ux*5,hand[1]-uy*5],21,k.shirt,k.shirtShade); oval(c,...cuff,2.2,2.2,k.gold,null);
+    oval(c,...hand,11.5,10.5,fist); line(c,[[hand[0]-4,hand[1]-5],[hand[0]+6,hand[1]-4]],'#0000002e',2);
+    if (front) line(c,[[hand[0]+1,hand[1]-6],[hand[0]+3,hand[1]+1]],k.gold,2.5);
+  }
+  kingpinTorso(c) {
+    const k = kingpinPalette;
+    shape(c,[[-14,-139],[-6,-147],[8,-144],[10,-136]],k.suitShade);
+    // Rounded barrel torso: broad shoulders, heavy belly, short jacket hem.
+    c.beginPath(); c.moveTo(-14,-140); c.lineTo(17,-142); c.quadraticCurveTo(33,-139,37,-126); c.quadraticCurveTo(49,-98,42,-73);
+    c.quadraticCurveTo(39,-62,30,-58); c.lineTo(-25,-56); c.quadraticCurveTo(-41,-66,-41,-97); c.quadraticCurveTo(-41,-121,-34,-127); c.closePath();
+    c.fillStyle = k.suit; c.fill(); c.strokeStyle = '#111b30'; c.lineWidth = 2; c.stroke();
+    c.beginPath(); c.moveTo(-34,-124); c.quadraticCurveTo(-26,-104,-22,-60); c.lineTo(-25,-56); c.quadraticCurveTo(-41,-66,-41,-97); c.quadraticCurveTo(-41,-118,-34,-124); c.fillStyle = k.suitShade; c.fill();
+    c.beginPath(); c.moveTo(42,-108); c.quadraticCurveTo(47,-84,34,-64); c.strokeStyle = k.suitShade; c.lineWidth = 4; c.lineCap = 'round'; c.stroke();
+    shape(c,[[9,-140],[24,-140],[33,-112],[28,-96],[20,-104]],k.shirt,null);
+    shape(c,[[17,-137],[23,-137],[27,-108],[23,-100],[19,-108]],k.tie,null);
+    line(c,[[17,-136],[23,-136]],k.shirtShade,2); oval(c,23,-120,2.4,2.4,k.gem,null);
+    shape(c,[[9,-141],[15,-131],[10,-127],[27,-96],[22,-98],[5,-127]],k.suitShade,null);
+    line(c,[[24,-141],[34,-115],[28,-96]],k.suitDeep,2);
+    oval(c,31,-86,2.6,2.6,k.tie,null); oval(c,35,-73,2.6,2.6,k.tie,null);
+    shape(c,[[-8,-117],[2,-119],[0,-111],[-7,-111]],k.shirt,null); line(c,[[-9,-111],[3,-112]],k.suitDeep,1.5);
+    line(c,[[-24,-59],[31,-61]],k.suitDeep,2); line(c,[[-18,-127],[-2,-122],[10,-125]],'#ffffffaa',2);
+  }
+  kingpinHead(c, P, skin, shade, enraged, open, time) {
+    c.save(); c.translate(4,-140); c.rotate(P.head || 0); c.translate(-4,140);
+    shape(c,[[-10,-133],[-9,-150],[16,-151],[19,-134]],skin);
+    oval(c,5,-162,15.5,17.5,skin);
+    // Heavy jaw: fill hides the skull's lower outline, then only the outer jawline is inked.
+    shape(c,[[-2,-153],[19,-156],[22,-147],[15,-141],[1,-142],[-6,-149]],skin,null);
+    line(c,[[19,-156],[22,-147],[15,-141],[1,-142]],'#182039',1.8);
+    c.beginPath(); c.ellipse(-1,-172,7,3.4,-.5,0,Math.PI*2); c.fillStyle = '#ffffff60'; c.fill();
+    oval(c,-6,-158,3.4,5,shade);
+    line(c,enraged ? [[7,-170],[20,-163]] : [[7,-167],[20,-165]],'#3a2626',3.2);
+    oval(c,15,-162,1.9,1.7,'#1a1420',null);
+    shape(c,[[18,-165],[24,-157],[19,-154]],skin,'#7b4a38',1.4);
+    if (open) { shape(c,[[10,-151],[19,-153],[18,-143],[11,-144]],'#3a1420'); line(c,[[11,-150],[18,-151]],'#f6eedb',2); }
+    else if (enraged) { shape(c,[[10,-151],[19,-152],[18,-147],[11,-147]],'#f2ead8','#5a2a2a',1.2); line(c,[[14,-151],[14,-147]],'#8a6a5a',1); }
+    else line(c,[[11,-149],[19,-150]],'#6b3a30',2.2);
+    if (enraged) {
+      line(c,[[-6,-174],[-2,-170],[-5,-166]],'#c22f35',1.8); line(c,[[6,-178],[9,-174],[6,-170]],'#c22f35',1.6);
+      for (let i = 0; i < 3; i++) { const t = (time*.9+i/3)%1; c.globalAlpha = (1-t)*.45; oval(c,-4+i*8+Math.sin(t*6+i)*3,-184-t*30,4+t*6,3+t*5,'#fff',null); }
+      c.globalAlpha = 1;
+    }
+    c.restore();
+  }
+  kingpinEffects(c, actor, state, stage, P, time) {
+    const hand = P.frontHand;
+    if ((state === 'punch' || state === 'strong') && stage === 'active') {
+      c.save(); c.globalAlpha = .85;
+      line(c,[[hand[0]-34,hand[1]-9],[hand[0]-6,hand[1]-8]],'#fff1b1',3); line(c,[[hand[0]-40,hand[1]+6],[hand[0]-10,hand[1]+7]],'#ffd77b',2);
+      if (state === 'strong') { c.beginPath(); c.arc(34,-118,54,-1.75,-.25); c.strokeStyle = '#fff1c7'; c.lineWidth = 5; c.stroke(); }
+      burst(c,[hand[0]+16,hand[1]],1.1); c.restore();
+    }
+    if (state === 'shove' && stage === 'active') {
+      c.save(); c.globalAlpha = .8; for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(70,-104,26+i*13,-1,1); c.strokeStyle = i ? '#ffb38a' : '#fff4d4'; c.lineWidth = 4-i; c.stroke(); } c.restore();
+    }
+    if (state === 'roar' && stage !== 'windup') {
+      c.save(); c.globalAlpha = .75;
+      for (let i = 0; i < 10; i++) { const a = -Math.PI*.95+i*Math.PI*.95/9, r = 30+Math.sin(time*30+i)*3; line(c,[[8+Math.cos(a)*r,-160+Math.sin(a)*r],[8+Math.cos(a)*(r+18),-160+Math.sin(a)*(r+18)]],i%2 ? '#ff6a5c' : '#ffe0a8',3); }
+      c.restore();
+    }
+    if (state === 'charge' && stage === 'windup') { c.save(); c.globalAlpha = .5; for (let i = 0; i < 2; i++) oval(c,30+i*5,-150-i*6+Math.sin(time*20)*1.5,3+i*2,2+i,'#ffffff',null); c.restore(); }
+    if ((state === 'charge' && stage === 'recover') || (actor.enraged && state === 'idle')) for (let i = 0; i < 2; i++) { const t = (time*1.6+i*.5)%1; c.save(); c.globalAlpha = 1-t; shape(c,[[22+i*7,-172+t*14],[25+i*7,-166+t*14],[22+i*7,-163+t*14],[19+i*7,-166+t*14]],'#bfe6ff',null); c.restore(); }
+    if (actor.hitFlash > 0) { c.save(); c.globalAlpha = Math.min(1,actor.hitFlash/.14); burst(c,[18,-108],1.6,'#ffffff'); burst(c,[18,-108],.9,'#ffd27b'); c.restore(); }
+  }
+  // Ground-space effects stay level while the body leans or falls.
+  kingpinGround(c, actor, state, stage, time) {
+    c.save();
+    if (state === 'charge' && stage === 'windup') { c.globalAlpha = .55; for (let i = 0; i < 3; i++) oval(c,-48-i*11+Math.sin(time*20+i)*3,-5-i*4,6+i*3,4+i*1.5,'#c8c1cf',null); }
+    if (state === 'backstep') { c.globalAlpha = .5; for (let i = 0; i < 3; i++) oval(c,28+i*12,-4-i*3,7+i*2,3+i,'#c8c1cf',null); }
+    if (state === 'charge' && stage === 'active') { c.globalAlpha = .6; for (let i = 0; i < 5; i++) line(c,[[-52-i*4,-30-i*28],[-92-i*8,-30-i*28]],'#f3efe4',3-i*.3); }
+    if (state === 'slam' && (stage === 'active' || (stage === 'recover' && attackStage(actor).k < .45))) {
+      c.globalAlpha = .9;
+      for (let i = 0; i < 6; i++) { const a = Math.PI*(.05+i*.18); line(c,[[74,-2],[74+Math.cos(a)*24,-2+Math.sin(a)*5],[74+Math.cos(a)*44,-1+Math.sin(a)*8]],'#11182a',3); }
+      for (let i = 0; i < 5; i++) { const t = attackStage(actor).k; shape(c,[[60+i*8,-12-i*7-t*14],[66+i*8,-14-i*7-t*14],[64+i*8,-8-i*7-t*14]],'#8d8aa0',null); }
+    }
+    if (state === 'defeated' && actor.actionTime <= .15) { c.globalAlpha = Math.max(0,.6-(actor.deathTime || 0)*.12); for (let i = 0; i < 6; i++) oval(c,-110+i*30,-6-(i%2)*5,16+(i%3)*6,7+(i%2)*3,'#bdb7c6',null); }
+    c.restore();
   }
 
   preview(canvas, config, state = 'idle') {
