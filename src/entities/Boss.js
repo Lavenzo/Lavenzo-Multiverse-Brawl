@@ -14,8 +14,10 @@ export class Boss extends Enemy {
     this.timers={ charge:rules.timers.charge*.5, slam:rules.timers.slam*.5 };
   }
   get rules() { return this.config.boss; }
+  role(id) { return this.rules.roles?.[id] ?? id; }
   modifier(key) { return this.enraged ? this.rules.enrage[key] : 1; }
   move(id) {
+    id=this.role(id);
     const m={ ...this.rules.moves[id], ...(this.enraged ? this.rules.enrage.moves?.[id] : null) };
     const speed=this.config.attackSpeed*this.modifier('attackSpeed');
     return { ...m, damage:m.damage*this.config.damage*this.modifier('damage'), duration:m.duration/speed, windup:m.windup/speed, active:m.active/speed, ...(m.charge ? { charge:m.charge*speed } : {}) };
@@ -79,7 +81,7 @@ export class Boss extends Enemy {
     const chargeReady=this.timers.charge<=0 && ady<=rules.chargeLane && adx<rules.chargeRange[0];
     if(slamReady && ady>punch.lane-4) return 'slam';
     if(this.closeAttacks>=combo) for(const id of this.lastFinisher==='slam'?['backstep','slam']:['slam','backstep']) if(id==='slam'?slamReady:chargeReady) return id;
-    if(adx<=punch.range+body && ady<=punch.lane-4) return this.closeAttacks%combo===combo-1?'hook':'punch';
+    if(adx<=punch.range+body && ady<=punch.lane-4) return rules.sequence?.[this.closeAttacks%rules.sequence.length] ?? (this.closeAttacks%combo===combo-1?'hook':'punch');
     return null;
   }
   perform(id) {
@@ -90,7 +92,7 @@ export class Boss extends Enemy {
     if(m.guard) this.invulnerability=Math.max(this.invulnerability,m.windup+m.active+.05);
     if(id==='charge') { this.timers.charge=rules.timers.charge*this.modifier('timers'); this.provoked=false; this.kiting=0; this.closeAttacks=0; this.lastFinisher='charge'; }
     if(id==='slam') { this.timers.slam=rules.timers.slam*this.modifier('timers'); this.closeAttacks=0; this.lastFinisher='slam'; }
-    if(id==='punch' || id==='hook') this.closeAttacks++;
+    if(id==='punch' || id==='hook' || this.rules.sequence?.includes(id)) this.closeAttacks++;
   }
   // Movement inside an attack: the charge travels during its active window and stops on contact;
   // the enraged slam's shockwave widens the same hit range CombatSystem checks.

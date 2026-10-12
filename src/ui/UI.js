@@ -24,9 +24,13 @@ export class UI {
   }
   button(id, text, fn, disabled = false) { const button = document.createElement('button'); button.textContent = text; button.dataset.testid = id; button.disabled = disabled; button.onclick = fn; return button; }
   screen(g) {
+    const below=document.querySelector('.below span');
+    const label=g.stage.number===2?'02 / UNDERGROUND FIGHT CLUB':'01 / CITY STREETS';
+    below.firstChild.textContent=label+' ';
+    below.querySelector('b').textContent=g.stage.number===2?'FOUR WAVES + MIKE TYSON BOSS':'FOUR WAVES + WILSON FISK BOSS';
     const root = document.querySelector('#screen'); root.replaceChildren(); root.hidden = g.state === 'playing'; root.dataset.state = g.state; document.querySelector('#mode-label').textContent = g.developerMode ? 'DEVELOPER MODE / P TOOLS' : 'SINGLE PLAYER';
     if (g.state === 'menu') {
-      root.innerHTML = `<span class="eyebrow">THE MULTIVERSE IS CALLING</span><h2>CHOOSE YOUR FIGHT.</h2><div class="menu-lineup"></div><p class="note">Milestone 3 / Stage 1: four mixed-universe waves and the Kingpin boss.<br>Stages 2–8 are still in development.</p>`;
+      root.innerHTML = `<span class="eyebrow">THE MULTIVERSE IS CALLING</span><h2>CHOOSE YOUR FIGHT.</h2><div class="menu-lineup"></div><p class="note">Stages 1 and 2 / City Streets and Underground Fight Club.<br>Stages 3 to 8 are still in development.</p>`;
       for(const character of characters) { const canvas = document.createElement('canvas'); canvas.width = 240; canvas.height = 240; canvas.setAttribute('aria-label',character.name); root.querySelector('.menu-lineup').append(canvas); this.preview(canvas,character); }
       root.append(this.button('start-normal', 'START GAME →', () => g.selectMode(false)), this.button('start-developer', 'DEVELOPER / TEST MODE', () => g.selectMode(true)));
     } else if (g.state === 'select') {
@@ -48,8 +52,8 @@ export class UI {
       root.append(this.button('resume', 'RESUME →', () => { g.state = 'playing'; this.screen(g); }), this.button('return-menu', 'MAIN MENU', () => g.resetGame()));
     } else if(g.state==='stageClear' || g.state==='gameOver') {
       const clear=g.state==='stageClear',bossFight=g.waves.phase!=='waves';
-      const note=clear?(g.developerMode?'Developer run: score and progress are not saved.':`Best score ${g.progress.data.bestScore}. Stage ${g.stage.number+1} is still in development.`)
-        :bossFight?'Jump over the Ground Slam shockwave and step out of the Bull Charge lane.':'Try a special attack to push back a group. Move between lanes to dodge.';
+      const note=clear?(g.developerMode?'Developer run: score and progress are not saved.':`Best score ${g.progress.data.bestScore}. ${g.stage.number===1?"Continue to Underground Fight Club.":"Stage 3 is still in development."}`)
+        :bossFight?(g.stage.number===2?'Keep your guard distance, punish hook recoveries and step out of the Knockout Rush lane.':'Jump over the Ground Slam shockwave and step out of the Bull Charge lane.'):'Try a special attack to push back a group. Move between lanes to dodge.';
       const eyebrowStr = g.stage.number === 1 ? `CITY STREETS / ${clear?'WILSON FISK DEFEATED':'OUT OF LIVES'}` : `UNDERGROUND FIGHT CLUB / ${clear?'MIKE TYSON DEFEATED':'OUT OF LIVES'}`;
       root.innerHTML=`<span class="eyebrow">${eyebrowStr}</span><h2 data-testid="result-title">${clear?`STAGE ${g.stage.number} CLEARED`:'GAME OVER'}</h2><p data-testid="final-score">${clear?'FINAL SCORE':'SCORE'} ${g.score}</p><p class="note">${note}</p>`;
       if (clear && g.stage.number === 1) {

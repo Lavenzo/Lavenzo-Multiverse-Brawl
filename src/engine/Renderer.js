@@ -16,167 +16,57 @@ export class Renderer {
     if(this.canvas.width !== width || this.canvas.height !== height) { this.canvas.width=width; this.canvas.height=height; }
   }
 
-  drawFightClub(c, cx, shakeY) {
-    c.save(); c.translate(0, shakeY);
-    // Dark underground wall
-    c.fillStyle = '#0f1115'; c.fillRect(0, 0, 960, 540);
-
-    // Industrial panels
-    c.fillStyle = '#161922';
-    for (let i = 0; i < 10; i++) {
-      const px = -((cx * 0.3) % 400) + i * 400;
-      c.fillRect(px, 100, 300, 350);
-      c.fillStyle = '#222633';
-      c.fillRect(px + 10, 110, 280, 20); // Top beam
-      c.fillStyle = '#161922';
-
-      // Caution stripes
-      c.save(); c.translate(px + 150, 250); c.rotate(Math.PI / 4);
-      c.fillStyle = '#b38c22';
-      for (let j = -100; j < 100; j += 40) c.fillRect(j, -150, 20, 300);
-      c.restore();
-
-      // Posters
-      if (i % 2 === 0) {
-        c.fillStyle = '#7a2222'; c.fillRect(px + 80, 200, 60, 80);
-        c.fillStyle = '#fff'; c.font = '14px monospace'; c.fillText('FIGHT', px + 85, 220); c.fillText('NIGHT', px + 85, 240);
-      } else {
-        c.fillStyle = '#22557a'; c.fillRect(px + 150, 180, 50, 70);
-        c.fillStyle = '#fff'; c.font = '10px monospace'; c.fillText('WANTED', px + 155, 195);
-      }
-    }
-
-    // Chainlink fence / cage boundary
-    c.strokeStyle = '#2a2e3d'; c.lineWidth = 3;
-    c.beginPath();
-    for (let x = -((cx * 0.5) % 80); x < 960; x += 80) {
-      for (let y = 300; y < 450; y += 40) {
-        c.moveTo(x, y); c.lineTo(x + 40, y + 20); c.lineTo(x + 80, y);
-        c.moveTo(x, y + 40); c.lineTo(x + 40, y + 20); c.lineTo(x + 80, y + 40);
-      }
-    }
-    c.stroke();
-
-    // Top fence rail
-    c.fillStyle = '#1a1d26'; c.fillRect(0, 300, 960, 15);
-
-    // Spectators (Silhouettes)
-    c.fillStyle = '#0a0c10';
-    const time = performance.now() / 1000;
-    for (let i = 0; i < 20; i++) {
-      const px = -((cx * 0.7) % 150) + i * 150;
-      const bob = Math.sin(time * 3 + i) * 5;
-      c.beginPath(); c.arc(px + 40, 400 + bob, 15, 0, Math.PI*2); c.fill(); // Head
-      c.fillRect(px + 20, 415 + bob, 40, 40); // Body
-
-      const bob2 = Math.cos(time * 2 + i) * 4;
-      c.beginPath(); c.arc(px + 100, 410 + bob2, 12, 0, Math.PI*2); c.fill();
-      c.fillRect(px + 85, 422 + bob2, 30, 30);
-    }
-
-    // Arena Floor
-    c.fillStyle = '#1a1616'; c.fillRect(0, 450, 960, 90);
-    c.fillStyle = '#2d1616'; c.fillRect(0, 450, 960, 5); // Ring boundary line
-
-    // Blood splatters / grunge on floor
-    c.fillStyle = '#100a0a';
-    for (let i = 0; i < 15; i++) {
-      const px = -((cx * 1.0) % 300) + i * 300;
-      c.beginPath(); c.ellipse(px + 50, 480, 20, 5, Math.PI/6, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.ellipse(px + 200, 510, 30, 8, -Math.PI/8, 0, Math.PI*2); c.fill();
-    }
-
-    // Spotlights overlay
-    c.globalCompositeOperation = 'screen';
-    const spot = c.createLinearGradient(0, 0, 0, 540);
-    spot.addColorStop(0, '#ffffff15'); spot.addColorStop(1, '#ffffff00');
-    c.fillStyle = spot;
-    for (let i = 0; i < 4; i++) {
-      const px = -((cx * 0.2) % 600) + i * 600 + 100;
-      c.beginPath(); c.moveTo(px, -50); c.lineTo(px - 150, 540); c.lineTo(px + 150, 540); c.fill();
-    }
-    c.globalCompositeOperation = 'source-over';
-
-    c.restore();
-  }
-
   drawFightClub(c, cx) {
-    c.save();
-    // Deep dark brick/concrete background
-    c.fillStyle = '#111214'; c.fillRect(0, 0, 960, 540);
-
-    // Distant brick texture
-    c.fillStyle = '#16171a';
-    for (let y = 0; y < 200; y += 30) {
-      for (let x = 0; x < 1200; x += 60) {
-        const offset = (y / 30) % 2 === 0 ? 0 : 30;
-        const px = -((cx * 0.1) % 60) + x + offset - 100;
-        c.fillRect(px, y, 55, 25);
+    if(!this.clubScene) {
+      const scene=document.createElement('canvas');scene.width=2400;scene.height=540;
+      const d=scene.getContext('2d');
+      d.fillStyle='#14151e';d.fillRect(0,0,2400,540);
+      for(let row=0;row<12;row++) for(let i=0;i<42;i++) {
+        d.fillStyle=['#27232a','#30262b','#24252d','#352b2e'][(i*7+row*3)%4];
+        d.fillRect(i*60-(row%2)*30,row*29,57,26);
+        d.fillStyle='#50414a44';d.fillRect(i*60-(row%2)*30,row*29,57,2);
       }
+      d.fillStyle='#090e18';d.fillRect(0,0,2400,46);
+      for(let x=70;x<2400;x+=360) {
+        d.fillStyle='#080c14';d.fillRect(x,42,12,302);
+        d.fillStyle='#514153';d.fillRect(x+2,44,2,295);
+        d.fillStyle='#4d2330';d.fillRect(x+65,76,138,102);
+        d.strokeStyle='#93635b';d.strokeRect(x+69,80,130,94);
+        d.fillStyle='#e5c4a2';d.font='bold 18px monospace';d.fillText('FIGHT NIGHT',x+74,111);
+        d.font='11px monospace';d.fillText('UNDERGROUND',x+91,137);d.fillText('NO EASY WINS',x+87,155);
+        d.fillStyle='#313748';d.fillRect(x+212,43,48,15);
+        d.fillStyle='#ffe4b6';d.fillRect(x+218,57,36,5);
+        const glow=d.createRadialGradient(x+236,125,8,x+236,160,220);
+        glow.addColorStop(0,'#ffc68a20');glow.addColorStop(1,'#ffc68a00');
+        d.fillStyle=glow;d.fillRect(x+16,20,440,330);
+      }
+      // Varied spectators remain behind the railing and outside the playable lanes.
+      for(let i=0;i<69;i++) {
+        const x=18+i*35,y=284+(i*17)%23,h=34+i%4*7;
+        d.fillStyle=['#252d3c','#47313a','#343b3c','#493f35'][i%4];
+        d.beginPath();d.moveTo(x-12,y+10);d.quadraticCurveTo(x,y,x+13,y+10);d.lineTo(x+17,y+h);d.lineTo(x-16,y+h);d.fill();
+        d.fillStyle=['#87664f','#ac8363','#674e43','#bd9170'][i%4];
+        d.beginPath();d.ellipse(x,y,7+i%3,10,0,0,Math.PI*2);d.fill();
+        d.fillStyle=i%3?'#211d25':'#826242';d.fillRect(x-8,y-10,16,5);
+        d.strokeStyle=['#252d3c','#47313a','#343b3c','#493f35'][i%4];d.lineWidth=7;
+        d.beginPath();d.moveTo(x-10,y+16);d.lineTo(x-20,y+(i%5===0?-18:31));d.stroke();
+      }
+      d.fillStyle='#080f1c';d.fillRect(0,327,2400,9);d.fillRect(0,360,2400,12);
+      d.fillStyle='#475063';d.fillRect(0,327,2400,2);
+      for(let x=20;x<2400;x+=85){d.fillStyle='#151c2b';d.fillRect(x,335,7,31);}
+      const floor=d.createLinearGradient(0,370,0,540);floor.addColorStop(0,'#3b3c48');floor.addColorStop(1,'#242634');
+      d.fillStyle=floor;d.fillRect(0,372,2400,168);
+      d.strokeStyle='#c3b39b66';d.lineWidth=3;d.strokeRect(45,385,2310,122);
+      d.strokeStyle='#10182555';d.lineWidth=1;
+      for(let x=-100;x<2500;x+=120){d.beginPath();d.moveTo(x,374);d.lineTo(x-55,540);d.stroke();}
+      for(let i=0;i<420;i++){d.fillStyle=i%2?'#ac9d8e15':'#11172740';d.fillRect((i*137)%2400,380+(i*41)%151,3+i%8,1);}
+      for(let x=250;x<2400;x+=550){
+        d.strokeStyle='#96929430';d.lineWidth=2;d.beginPath();d.ellipse(x,450,98,28,0,0,Math.PI*2);d.stroke();
+        d.fillStyle='#11182766';d.font='bold 22px monospace';d.fillText('FIGHT CLUB',x-66,457);
+      }
+      this.clubScene=scene;
     }
-
-    // Overhead truss/lighting rig
-    c.fillStyle = '#08090a'; c.fillRect(0, 0, 960, 60);
-    c.strokeStyle = '#1a1c22'; c.lineWidth = 2;
-    for (let i = -100; i < 1100; i += 40) {
-      const px = -((cx * 0.2) % 40) + i;
-      c.beginPath(); c.moveTo(px, 0); c.lineTo(px + 30, 60); c.stroke();
-      c.beginPath(); c.moveTo(px + 30, 0); c.lineTo(px, 60); c.stroke();
-    }
-
-    // Banners / Flags
-    for (let i = 0; i < 5; i++) {
-      const px = -((cx * 0.3) % 400) + i * 400 + 150;
-      c.fillStyle = '#5c1717'; c.fillRect(px, 60, 80, 180);
-      c.beginPath(); c.moveTo(px, 240); c.lineTo(px + 40, 200); c.lineTo(px + 80, 240); c.fill();
-      c.fillStyle = '#fff'; c.font = 'bold 20px monospace';
-      c.fillText('CLUB', px + 15, 130);
-    }
-
-    // Distant dark crowd / spectators (far back)
-    c.fillStyle = '#060709';
-    const time = performance.now() / 1000;
-    for (let i = 0; i < 30; i++) {
-      const px = -((cx * 0.5) % 100) + i * 100;
-      const bob = Math.sin(time * 4 + i) * 4;
-      c.beginPath(); c.arc(px + 20, 290 + bob, 15, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.arc(px + 60, 280 - bob, 14, 0, Math.PI*2); c.fill();
-      c.fillRect(px, 305 + bob, 40, 50);
-      c.fillRect(px + 45, 294 - bob, 30, 50);
-    }
-
-    // Midground barricade / railing (dark, subtle)
-    c.fillStyle = '#1c1e24'; c.fillRect(0, 320, 960, 10);
-    for (let i = -100; i < 1100; i += 60) {
-      const px = -((cx * 0.5) % 60) + i;
-      c.fillRect(px, 330, 8, 40);
-    }
-    c.fillStyle = '#14151a'; c.fillRect(0, 360, 960, 10);
-
-    // Arena Floor
-    c.fillStyle = '#18191c'; c.fillRect(0, 370, 960, 170); // Main floor
-    c.fillStyle = '#22252a'; c.fillRect(0, 370, 960, 4); // White-ish tape ring boundary
-
-    // Floor details (grime/dirt)
-    c.fillStyle = '#131416';
-    for (let i = 0; i < 20; i++) {
-      const px = -((cx * 1.0) % 250) + i * 250;
-      c.beginPath(); c.ellipse(px + 50, 420, 30, 8, Math.PI/12, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.ellipse(px + 180, 480, 45, 12, -Math.PI/10, 0, Math.PI*2); c.fill();
-    }
-
-    // Spotlights overlay (subtle so characters remain clear)
-    c.globalCompositeOperation = 'screen';
-    const spot = c.createLinearGradient(0, 0, 0, 400);
-    spot.addColorStop(0, '#ffffff1a'); spot.addColorStop(1, '#ffffff00');
-    c.fillStyle = spot;
-    for (let i = 0; i < 4; i++) {
-      const px = -((cx * 0.4) % 500) + i * 500 + 100;
-      c.beginPath(); c.moveTo(px, 0); c.lineTo(px - 100, 400); c.lineTo(px + 100, 400); c.fill();
-    }
-    c.globalCompositeOperation = 'source-over';
-
-    c.restore();
+    c.drawImage(this.clubScene,-cx,0);
   }
   draw(game) {
     const c=this.ctx,p=game.player;
@@ -197,7 +87,7 @@ export class Renderer {
     if(mini) { c.fillStyle='#121a2bcc'; c.fillRect(345,top,270,40); c.fillStyle='#c7d9e8'; c.font='bold 10px monospace'; c.fillText(`MINI-BOSS / ${mini.config.name.toUpperCase()}`,355,top+14); c.fillStyle='#344357'; c.fillRect(355,top+21,250,8); c.fillStyle='#d47592'; c.fillRect(355,top+21,250*mini.health/mini.maxHealth,8); }
     if(p && game.waves.phase==='warning') this.warning(game.waves.phaseTime);
     c.fillStyle='#060e1b0b'; for(let y=0;y<540;y+=4) c.fillRect(0,y,960,1);
-    c.fillStyle='#c9c1d5'; c.font='10px monospace'; c.fillText('CITY STREETS / MIXED-UNIVERSE BRAWL / FOUR WAVES + WILSON FISK',20,529);
+    c.fillStyle='#c9c1d5'; c.font='10px monospace'; c.fillText(game.stage?.number===2 ? 'UNDERGROUND FIGHT CLUB / FOUR WAVES + MIKE TYSON' : 'CITY STREETS / MIXED-UNIVERSE BRAWL / FOUR WAVES + WILSON FISK',20,529);
   }
   warning(time) {
     const c=this.ctx,edge=c.createRadialGradient(480,270,230,480,270,560);

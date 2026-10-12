@@ -464,164 +464,256 @@ export class CharacterRenderer {
 
 
 
-  drawOwens(c, actor, x, y, scale) {
-    const time = actor.time || 0, state = actor.state === 'strongAttack' ? 'strong' : actor.state;
-    const { stage, k } = attackStage(actor);
-    let lean = 0, head = 0, bodyY = 0;
-    let frontFoot = [25,0], frontKnee = [30,-20], backFoot = [-15,-5], backKnee = [-10,-20];
-    let frontElbow = [25,-50], frontHand = [35,-65], backElbow = [-15,-50], backHand = [0,-70];
-
-    if (state === 'idle' || state === 'walk') {
-      const bob = Math.sin(time * (state === 'walk' ? 12 : 6));
-      lean = bob * 0.05 + 0.1;
-      bodyY = bob * 3;
-      if (state === 'walk') {
-        const stride = Math.sin(time * 12);
-        frontFoot[0] += stride * 15; frontKnee[0] += stride * 8;
-        backFoot[0] -= stride * 15; backKnee[0] -= stride * 8;
-      }
-    } else if (state === 'punch' || state === 'strong') {
-      if (stage === 'windup') {
-        lean = -0.2; bodyY = 5; backHand = [-25, -70]; frontHand = [15, -60];
-      } else if (stage === 'active') {
-        lean = 0.3; bodyY = -2; frontHand = [45, -75]; backHand = [-5, -60];
-      } else {
-        lean = 0.1; frontHand = [30, -70];
-      }
-    } else if (state === 'special' || state === 'charge') {
-      lean = 0.6; bodyY = 10;
-      frontHand = [40, -50]; backHand = [20, -60]; // Shoulder charge pose
-    } else if (state === 'hurt') {
-      lean = -0.3; head = -0.4; bodyY = 0; frontHand = [10, -40]; backHand = [-15, -50];
-    } else if (state === 'defeated') {
-      lean = -1.5; head = -0.5; bodyY = 30; frontFoot = [25, -10]; backFoot = [10, -5];
+  drawOwens(c, actor, x, y, scale = 1) {
+    // Owens-specific illustration. All pivots are visual; simulation dimensions remain in enemy data.
+    const state={strongAttack:'strong',specialAttack:'special'}[actor.state] || actor.state;
+    const {stage,k}=attackStage(actor),time=actor.time || 0,stride=state==='walk'?Math.sin(time*11):0;
+    const skin='#dba477',shade='#aa704f',light='#efbd91',black='#191d28',cloth='#303543';
+    let lean=.04,bob=state==='walk'?Math.abs(stride)*2:Math.sin(time*3)*1.1;
+    let backKnee=[-24-stride*8,-32],backFoot=[-29-stride*16,-2],knee=[26+stride*8,-31],foot=[33+stride*16,-2];
+    let backElbow=[-43,-107],backHand=[-35,-127],elbow=[44,-103],hand=[43,-126];
+    if(state==='punch'||state==='strong') {
+      if(stage==='windup'){lean=-.08;elbow=[39,-106];hand=[25,-133];}
+      else if(stage==='active'){lean=.13;elbow=[50,-118];hand=[78,-124+k*5];backHand=[-29,-124];}
+      else{lean=.08;elbow=[42,-103];hand=[49,-115];}
+    } else if(state==='special'||state==='charge') {
+      lean=stage==='windup'?-.1:.28;bob=6;
+      elbow=[37,-105];hand=[25,-123];backElbow=[-39,-94];backHand=[-28,-107];
+      if(stage==='active'){backKnee=[-35,-31];backFoot=[-51,-4];knee=[35,-34];foot=[48,-2];}
+    } else if(state==='kick') {lean=-.1;knee=[41,-61];foot=[76,-35];hand=[30,-129];}
+    else if(state==='hurt'){lean=-.16;elbow=[40,-90];hand=[28,-91];backHand=[-40,-91];}
+    c.save();c.translate(x,y);c.scale((actor.facing || 1)*scale,scale);
+    if(state==='defeated'){
+      const fall=actor.actionTime>0?1-actor.actionTime/(actor.actionDuration || 1):1;
+      c.translate(50*fall,-12*fall);c.rotate(-1.5*fall);lean=0;
     }
-
-    c.save(); c.translate(x, y); c.scale((actor.facing || 1) * scale, scale);
-    if (state === 'defeated') {
-      const fall = actor.actionDuration && actor.actionTime > 0 ? 1 - actor.actionTime / actor.actionDuration : 1;
-      c.translate(50 * fall * fall, -10 * fall); c.rotate(-1.5 * fall * fall);
-    }
-
-    const hipY = -35 + bodyY;
-    const skin = '#eac096', skinShade = '#d9ad85', shirt = '#1a1c23', shirtShade = '#111216', shorts = '#2a2c33';
-
-    // Back Leg (shorts and boots)
-    limb(c, [-10, hipY], backKnee, backFoot, 26, shorts, '#111');
-    shape(c, [[backFoot[0]-12, backFoot[1]-15], [backFoot[0]+12, backFoot[1]-15], [backFoot[0]+15, backFoot[1]], [backFoot[0]-15, backFoot[1]]], '#111');
-
-    // Front Leg
-    limb(c, [10, hipY], frontKnee, frontFoot, 28, shorts, '#111');
-    shape(c, [[frontFoot[0]-12, frontFoot[1]-15], [frontFoot[0]+12, frontFoot[1]-15], [frontFoot[0]+15, frontFoot[1]], [frontFoot[0]-15, frontFoot[1]]], '#111');
-
-    c.save(); c.translate(0, hipY); c.rotate(lean); c.translate(0, 35);
-
-    // Back Arm
-    limb(c, [-20, -80], backElbow, backHand, 24, skin, skinShade);
-    oval(c, backHand[0], backHand[1], 10, 10, '#000'); // wrist tape
-
-    // Torso (stocky)
-    shape(c, [[-20, -85], [20, -85], [16, -45], [-16, -45]], shirt, shirtShade);
-    c.fillStyle = '#e24a4a'; c.font = 'bold 12px monospace'; c.fillText('KO', -8, -60); // logo
-
-    // Head
-    c.save(); c.translate(0, -90); c.rotate(head);
-    oval(c, 0, -10, 14, 15, skin);
-    shape(c, [[-12, -20], [12, -20], [14, -12], [-14, -12]], '#222'); // hair
-    shape(c, [[-10, 0], [10, 0], [8, 8], [-8, 8]], '#222'); // beard
+    c.translate(0,bob);
+    const leg=(hip,joint,to,rear)=>{
+      this.owensLimb(c,hip,joint,to,25,rear?'#242936':cloth,'#101626');
+      // Rounded knee pads and tall laced wrestling boots.
+      oval(c,joint[0],joint[1],12,10,black);line(c,[[joint[0]-7,joint[1]-4],[joint[0]+6,joint[1]-4]],'#505363',2);
+      c.save();c.translate(...to);
+      c.beginPath();c.moveTo(-11,-24);c.quadraticCurveTo(0,-29,10,-23);c.lineTo(10,-7);
+      c.quadraticCurveTo(15,-4,19,1);c.quadraticCurveTo(16,6,-12,5);c.closePath();
+      c.fillStyle='#151924';c.fill();c.strokeStyle='#0d1426';c.lineWidth=2;c.stroke();
+      line(c,[[-10,3],[17,3]],'#767780',2);line(c,[[-6,-22],[-7,-6]],'#454958',2);
+      for(let i=0;i<4;i++)line(c,[[-1,-21+i*4],[5,-17+i*4],[-1,-17+i*4]],'#bd5350',1.3);
+      c.restore();
+    };
+    leg([-14,-63],backKnee,backFoot,true);
+    c.save();c.translate(0,-65);c.rotate(lean);c.translate(0,65);
+    this.owensLimb(c,[-29,-123],backElbow,backHand,28,skin,shade);
+    this.owensFist(c,backElbow,backHand,skin,shade);
+    // Broad neck and organic barrel torso with sleeveless armholes.
+    shape(c,[[-12,-123],[-12,-143],[13,-143],[17,-123]],skin);
+    c.beginPath();c.moveTo(-15,-136);c.quadraticCurveTo(-30,-137,-35,-121);
+    c.bezierCurveTo(-39,-109,-33,-94,-33,-81);c.quadraticCurveTo(-34,-61,-22,-60);
+    c.quadraticCurveTo(1,-55,28,-61);c.bezierCurveTo(37,-65,35,-86,34,-99);
+    c.quadraticCurveTo(37,-121,26,-131);c.quadraticCurveTo(18,-137,13,-135);
+    c.quadraticCurveTo(0,-123,-15,-136);c.closePath();c.fillStyle=black;c.fill();c.strokeStyle='#111b30';c.lineWidth=2;c.stroke();
+    line(c,[[-16,-134],[-5,-128],[7,-128],[15,-134]],'#4d5060',2);
+    line(c,[[-29,-118],[-28,-96],[-29,-76]],cloth,4);
+    line(c,[[27,-112],[30,-94],[29,-79]],'#3f4350',2);
+    line(c,[[-24,-68],[0,-65],[25,-68]],'#383c49',2);
+    // Lettering follows the chest; its shape is part of the vector costume.
+    c.save();if(actor.facing<0)c.scale(-1,1);
+    c.font='900 25px sans-serif';c.textAlign='center';c.fillStyle='#e9e4d9';c.fillText('KO',1,-94);
+    line(c,[[-15,-89],[18,-89]],'#cc514b',3);
+    c.font='bold 6px monospace';c.fillStyle='#b4adab';c.fillText('FIGHT',1,-79);c.textAlign='start';
     c.restore();
-
-    // Front Arm
-    limb(c, [18, -80], frontElbow, frontHand, 26, skin, skinShade);
-    oval(c, frontHand[0], frontHand[1], 10, 10, '#000'); // wrist tape
-
+    // Black shorts with two separately articulated leg openings.
+    c.beginPath();c.moveTo(-29,-63);c.quadraticCurveTo(0,-56,29,-63);
+    c.lineTo(31,-45);c.quadraticCurveTo(20,-39,8,-42);c.lineTo(1,-49);
+    c.lineTo(-7,-41);c.quadraticCurveTo(-22,-38,-30,-44);c.closePath();
+    c.fillStyle='#202532';c.fill();c.strokeStyle='#111b30';c.lineWidth=2;c.stroke();
+    line(c,[[-25,-59],[0,-57],[25,-59]],'#555563',2);line(c,[[1,-53],[1,-49]],'#545767',1.5);
+    // Face: short textured hair, visible eyes/nose/mouth above a full beard.
+    c.save();c.translate(2,-148);if(state==='hurt')c.rotate(-.18);
+    oval(c,0,-5,19,21,skin);
+    oval(c,-18,-3,3,6,shade);oval(c,18,-3,3,5,skin);
+    shape(c,[[-18,-9],[-19,-20],[-16,-27],[-12,-29],[-11,-34],[-7,-31],[-4,-35],[0,-32],[4,-35],[7,-30],[12,-31],[16,-25],[18,-15],[12,-20],[4,-23],[-8,-22],[-14,-16]],'#29252a');
+    line(c,[[-10,-26],[-5,-29],[0,-26],[5,-28],[10,-25]],'#5b4a42',1.5);
+    line(c,[[-12,-13],[-5,-10]],'#57382e',2.4);line(c,[[3,-10],[11,-13]],'#57382e',2.4);
+    line(c,[[-11,-7],[-5,-7]],'#f4dbbb',2.5);line(c,[[4,-7],[10,-6]],'#f4dbbb',2.5);
+    oval(c,-7,-7,1.3,1.6,'#24232b',null);oval(c,7,-6,1.3,1.6,'#24232b',null);
+    line(c,[[0,-9],[4,-1],[1,2],[-3,1]],shade,1.8);
+    line(c,[[-12,-1],[-7,1]],'#bd815b',1.4);line(c,[[9,1],[13,-1]],'#bd815b',1.4);
+    c.beginPath();c.moveTo(-17,-1);c.quadraticCurveTo(-12,7,-5,5);
+    c.quadraticCurveTo(1,1,7,5);c.quadraticCurveTo(13,6,17,-1);
+    c.bezierCurveTo(21,10,15,23,5,29);c.quadraticCurveTo(-1,33,-7,27);
+    c.bezierCurveTo(-17,22,-20,12,-17,-1);c.closePath();c.fillStyle='#30272a';c.fill();c.strokeStyle='#111b30';c.lineWidth=1.8;c.stroke();
+    // Open shouting mouth for charges, tight bared-teeth expression otherwise.
+    const shouting=state==='special'||state==='charge'||state==='hurt';
+    oval(c,2,8,shouting?7:8,shouting?7:3,'#5b2829','#201e27');
+    line(c,[[-3,5],[7,5]],'#f3dbb7',2);
+    if(shouting)line(c,[[0,12],[5,12]],'#c3776b',2);
+    for(let i=0;i<5;i++)line(c,[[-11+i*5,14],[-8+i*4,23-i%2*3]],'#594437',1.4);
     c.restore();
-    if (actor.hitFlash > 0) {
-      c.save(); c.globalAlpha = Math.min(1, actor.hitFlash / .14); burst(c, [0, -60], 1.5, '#ffffff'); c.restore();
-    }
+    this.owensLimb(c,[29,-121],elbow,hand,29,skin,shade);
+    // Simplified ink follows the upper-arm pivot; it never affects simulation.
+    const angle=Math.atan2(elbow[1]+121,elbow[0]-29);
+    c.save();c.translate(29,-121);c.rotate(angle);
+    c.strokeStyle='#685d58';c.lineWidth=1.2;
+    for(let i=0;i<3;i++){c.beginPath();c.arc(9+i*5,0,5-i*.4,-1.5,1.6);c.stroke();}
     c.restore();
-  }
-
-  drawSabretooth(c, actor, x, y, scale) {
-    const time = actor.time || 0, state = actor.state === 'strongAttack' ? 'strong' : actor.state;
-    const { stage, k } = attackStage(actor);
-    let lean = 0.2, head = -0.1, bodyY = 5; // Hunched posture
-    let frontFoot = [25,0], frontKnee = [35,-25], backFoot = [-15,-5], backKnee = [-10,-25];
-    let frontElbow = [20,-50], frontHand = [30,-40], backElbow = [-10,-50], backHand = [-5,-40];
-
-    if (state === 'idle' || state === 'walk') {
-      const bob = Math.sin(time * (state === 'walk' ? 14 : 7));
-      lean = bob * 0.05 + 0.3;
-      bodyY = bob * 4 + 10;
-      if (state === 'walk') {
-        const stride = Math.sin(time * 14);
-        frontFoot[0] += stride * 18; frontKnee[0] += stride * 10;
-        backFoot[0] -= stride * 18; backKnee[0] -= stride * 10;
-      }
-    } else if (state === 'punch' || state === 'strong') { // Claw slash
-      if (stage === 'windup') {
-        lean = 0; bodyY = 5; backHand = [-25, -80]; frontHand = [15, -90];
-      } else if (stage === 'active') {
-        lean = 0.4; bodyY = 0; frontHand = [60, -60]; backHand = [-10, -50];
-      } else {
-        lean = 0.2; frontHand = [40, -50];
-      }
-    } else if (state === 'special') { // Feral Lunge
-      lean = 0.8; bodyY = 15;
-      frontHand = [50, -40]; backHand = [30, -50];
-      frontFoot = [-10, -10]; backFoot = [-30, -20];
-    } else if (state === 'hurt') {
-      lean = -0.2; head = -0.5; bodyY = 0; frontHand = [10, -40]; backHand = [-15, -50];
-    } else if (state === 'defeated') {
-      lean = -1.5; head = -0.5; bodyY = 30; frontFoot = [25, -10]; backFoot = [10, -5];
-    }
-
-    c.save(); c.translate(x, y); c.scale((actor.facing || 1) * scale, scale);
-    if (state === 'defeated') {
-      const fall = actor.actionDuration && actor.actionTime > 0 ? 1 - actor.actionTime / actor.actionDuration : 1;
-      c.translate(50 * fall * fall, -10 * fall); c.rotate(-1.5 * fall * fall);
-    }
-
-    const hipY = -45 + bodyY;
-    const suit = '#e8a958', suitShade = '#c78234', fur = '#edd5a6', trim = '#6a3f2b';
-
-    limb(c, [-10, hipY], backKnee, backFoot, 26, suit, suitShade);
-    limb(c, [10, hipY], frontKnee, frontFoot, 28, suit, suitShade);
-
-    c.save(); c.translate(0, hipY); c.rotate(lean); c.translate(0, 45);
-
-    // Back Arm
-    limb(c, [-20, -85], backElbow, backHand, 24, suit, suitShade);
-    this.drawClaws(c, backHand);
-
-    // Torso
-    shape(c, [[-20, -90], [20, -90], [15, -50], [-15, -50]], suit, suitShade);
-    shape(c, [[-15, -95], [15, -95], [25, -75], [-25, -75]], fur); // Fur collar
-
-    // Head
-    c.save(); c.translate(5, -100); c.rotate(head);
-    shape(c, [[-15, -25], [15, -25], [20, 10], [-20, 10]], '#d4b16a'); // Wild mane
-    oval(c, 0, -10, 12, 14, '#eac096'); // Face
-    shape(c, [[-8, -15], [8, -15], [10, -5], [-10, -5]], trim); // Mask
+    this.owensFist(c,elbow,hand,skin,shade);
     c.restore();
-
-    // Front Arm
-    limb(c, [15, -85], frontElbow, frontHand, 26, suit, suitShade);
-    this.drawClaws(c, frontHand);
-
-    c.restore();
-    if (actor.hitFlash > 0) {
-      c.save(); c.globalAlpha = Math.min(1, actor.hitFlash / .14); burst(c, [0, -60], 1.5, '#ffffff'); c.restore();
-    }
+    leg([14,-60],knee,foot,false);
+    if(actor.hitFlash>0){c.save();c.globalAlpha=Math.min(1,actor.hitFlash/.14);burst(c,[7,-110],1.5,'#fff2d0');c.restore();}
     c.restore();
   }
 
-  drawClaws(c, pos) {
-    c.save(); c.translate(pos[0], pos[1]);
-    oval(c, 0, 0, 10, 10, '#eac096'); // Hand
-    c.fillStyle = '#eee';
-    c.beginPath(); c.moveTo(4, 4); c.lineTo(15, 8); c.lineTo(6, 0); c.fill();
-    c.beginPath(); c.moveTo(0, 5); c.lineTo(12, 12); c.lineTo(2, 2); c.fill();
+  owensLimb(c, from, joint, to, width, color, shade) {
+    const muscle=(a,b,w)=>{
+      const angle=Math.atan2(b[1]-a[1],b[0]-a[0]),nx=-Math.sin(angle),ny=Math.cos(angle),mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;
+      c.beginPath();c.moveTo(a[0]+nx*w*.33,a[1]+ny*w*.33);
+      c.bezierCurveTo(mx+nx*w*.65,my+ny*w*.65,b[0]+nx*w*.4,b[1]+ny*w*.4,b[0],b[1]);
+      c.bezierCurveTo(b[0]-nx*w*.4,b[1]-ny*w*.4,mx-nx*w*.6,my-ny*w*.6,a[0]-nx*w*.33,a[1]-ny*w*.33);
+      c.closePath();c.fillStyle=color;c.fill();c.strokeStyle='#111b30';c.lineWidth=2;c.stroke();
+      line(c,[[a[0]-nx*w*.13,a[1]-ny*w*.13],[mx-nx*w*.25,my-ny*w*.25],[b[0],b[1]]],shade,2.5);
+    };
+    muscle(from,joint,width);oval(c,...joint,width*.3,width*.3,color);muscle(joint,to,width*.83);
+  }
+
+  owensFist(c, elbow, hand, skin, shade) {
+    const angle=Math.atan2(hand[1]-elbow[1],hand[0]-elbow[0]);
+    c.save();c.translate(...hand);c.rotate(angle);
+    // Tape on the wrist, bare closed fist beyond it.
+    shape(c,[[-13,-7],[-3,-7],[-3,7],[-13,7]],'#252630');
+    line(c,[[-10,-5],[-6,-5]],'#77717a',1.5);line(c,[[-10,2],[-6,2]],'#5b5865',1.5);
+    c.beginPath();c.moveTo(-4,-7);c.quadraticCurveTo(2,-11,9,-7);c.quadraticCurveTo(14,-4,12,4);
+    c.quadraticCurveTo(7,10,-1,8);c.lineTo(-5,3);c.closePath();c.fillStyle=skin;c.fill();c.strokeStyle='#111b30';c.lineWidth=2;c.stroke();
+    line(c,[[3,-6],[5,-1],[10,-1]],shade,1.3);
+    line(c,[[1,6],[3,2],[8,2]],shade,1.4);
+    c.restore();
+  }
+
+  drawSabretooth(c, actor, x, y, scale = 1) {
+    // Original vector anatomy. Joint coordinates are independent of combat bodies/hitboxes.
+    const state={strongAttack:'strong',specialAttack:'special'}[actor.state] || actor.state;
+    const {stage,k}=attackStage(actor),time=actor.time || 0;
+    const walk=state==='walk',stride=walk?Math.sin(time*12):0;
+    let tilt=.07,bob=walk?Math.abs(stride)*3:Math.sin(time*3)*1.4;
+    let rearKnee=[-24-stride*10,-35],rearFoot=[-30-stride*19,-2];
+    let knee=[26+stride*10,-36],foot=[33+stride*19,-2];
+    let rearElbow=[-43,-100],rearHand=[-49,-79],elbow=[44,-94],hand=[51,-74];
+    let clawAngle=.65,rearAngle=.85;
+    if(state==='strong'||state==='punch') {
+      if(stage==='windup') {tilt=-.08;elbow=[40,-129];hand=[23,-155];clawAngle=-.75;}
+      else if(stage==='active') {
+        tilt=.15;elbow=[48,-120+20*k];hand=[77,-127+48*k];clawAngle=-.35+k*1.5;
+        rearElbow=[-34,-109];rearHand=[-23,-95];
+      } else {elbow=[46,-98];hand=[59,-84];tilt=.1;}
+    }
+    if(state==='special') {
+      tilt=stage==='windup'?-.1:.29;bob=stage==='windup'?7:2;
+      elbow=stage==='windup'?[35,-110]:[54,-126];hand=stage==='windup'?[25,-92]:[83,-111];
+      rearElbow=[-30,-111];rearHand=stage==='windup'?[-35,-90]:[43,-119];
+      clawAngle=.1;rearAngle=.2;
+      if(stage==='active'){rearKnee=[-39,-39];rearFoot=[-57,-8];knee=[36,-43];foot=[52,-2];}
+    }
+    if(state==='kick') {knee=[43,-65];foot=[76,-46];elbow=[36,-114];hand=[31,-99];tilt=-.12;}
+    if(state==='hurt') {tilt=-.18;elbow=[34,-83];hand=[24,-65];rearHand=[-43,-66];}
+    c.save();c.translate(x,y);c.scale((actor.facing || 1)*scale,scale);
+    if(state==='defeated') {
+      const fall=actor.actionTime>0?1-actor.actionTime/(actor.actionDuration || 1):1;
+      c.translate(50*fall,-14*fall);c.rotate(-1.5*fall);tilt=0;
+    }
+    c.translate(0,bob);
+    const orange='#d69736',light='#edb755',shade='#986027',rust='#a64427',dark='#592f25',fur='#efd297';
+    // Legs: separate rounded thighs/calves, flexed knees, brown boots.
+    const leg=(hip,joint,to,back)=>{
+      this.sabretoothLimb(c,hip,joint,to,back?24:27,back?'#b7782d':orange,shade);
+      line(c,[[hip[0]-4,hip[1]+6],[joint[0]-6,joint[1]-6]],back?shade:light,3);
+      shape(c,[[joint[0]-9,joint[1]-8],[joint[0]+8,joint[1]-11],[joint[0]+11,joint[1]-3],[joint[0]-5,joint[1]+1]],rust,null);
+      segment(c,[joint[0]*.35+to[0]*.65,joint[1]*.35+to[1]*.65],to,19,dark,'#3c2524');
+      boot(c,to,dark);
+    };
+    leg([-13,-69],rearKnee,rearFoot,true);
+    c.save();c.translate(0,-69);c.rotate(tilt);c.translate(0,69);
+    this.sabretoothLimb(c,[-27,-127],rearElbow,rearHand,27,'#bc7f32',shade);
+    this.drawClaws(c,rearHand,rearAngle);
+    // Curved lats/pectorals and tapered abdomen; no rectangular torso.
+    c.beginPath();c.moveTo(-27,-133);c.bezierCurveTo(-43,-128,-32,-100,-23,-91);
+    c.quadraticCurveTo(-15,-78,-15,-66);c.quadraticCurveTo(0,-61,16,-67);
+    c.quadraticCurveTo(16,-83,25,-95);c.bezierCurveTo(38,-115,42,-133,24,-139);
+    c.quadraticCurveTo(0,-150,-27,-133);c.closePath();c.fillStyle=orange;c.fill();c.strokeStyle='#111b30';c.lineWidth=2;c.stroke();
+    shape(c,[[-15,-139],[13,-141],[19,-118],[12,-98],[11,-68],[-10,-67],[-14,-100],[-21,-121]],rust,null);
+    oval(c,-13,-123,17,12,'#b6502c',null);oval(c,15,-125,18,13,'#c65b31',null);
+    line(c,[[-25,-115],[-12,-112],[-3,-114]],dark,2);
+    line(c,[[3,-114],[15,-111],[29,-119]],dark,2);
+    line(c,[[0,-127],[0,-110]],dark,2);
+    for(let i=0;i<3;i++) {
+      line(c,[[-9,-103+i*10],[-2,-101+i*10]],'#743c28',1.5);
+      line(c,[[3,-102+i*10],[10,-105+i*10]],'#743c28',1.5);
+    }
+    line(c,[[-24,-102],[-18,-90],[-16,-77]],light,3);
+    line(c,[[27,-105],[22,-95],[21,-87]],light,3);
+    shape(c,[[-17,-74],[17,-74],[20,-64],[11,-55],[0,-59],[-13,-55],[-20,-64]],rust);
+    line(c,[[-15,-71],[15,-71]],dark,3);
+    // A broad fur mantle frames the shoulders, opening around the chest.
+    shape(c,[[-6,-142],[-20,-159],[-22,-149],[-34,-155],[-34,-145],[-48,-143],[-42,-135],[-52,-130],[-44,-125],[-47,-114],[-39,-116],[-32,-101],[-27,-111],[-21,-118],[-14,-127]],fur);
+    shape(c,[[7,-145],[21,-162],[25,-153],[36,-159],[35,-148],[49,-150],[43,-140],[54,-135],[47,-129],[50,-119],[42,-119],[35,-104],[29,-115],[23,-122],[17,-132]],fur);
+    for(const d of [-1,1]) {
+      line(c,[[d*29,-145],[d*35,-132],[d*31,-123]],'#c39860',2);
+      line(c,[[d*20,-145],[d*25,-135]],'#fff0c3',2);
+      line(c,[[d*39,-138],[d*41,-129]],'#fff0c3',2);
+    }
+    // Thick neck, swept mane, sideburns and angular, visible face.
+    shape(c,[[-11,-135],[-12,-151],[12,-151],[17,-134]],'#bf794c');
+    c.save();c.translate(3,-151);if(state==='hurt')c.rotate(-.2);
+    shape(c,[[-15,13],[-25,9],[-20,1],[-27,-6],[-21,-10],[-27,-20],[-17,-19],[-19,-30],[-9,-27],[-6,-37],[2,-30],[12,-34],[15,-26],[25,-30],[20,-19],[27,-20],[21,-9],[26,-5],[19,5],[21,12]],'#d8a043');
+    shape(c,[[-12,-18],[-6,-25],[9,-23],[16,-13],[15,2],[7,14],[-4,13],[-13,3],[-16,-8]],'#dfaa72');
+    shape(c,[[-13,-15],[-18,-9],[-13,6],[-5,12],[-7,3]],'#bf813c',null);
+    shape(c,[[12,-14],[19,-7],[15,6],[7,12],[9,2]],'#bf813c',null);
+    shape(c,[[-16,-22],[-18,-30],[-9,-26],[-7,-34],[0,-27],[8,-31],[11,-24],[22,-28],[17,-18],[7,-20],[0,-15],[-7,-19]],'#f0bd5a');
+    line(c,[[-10,-24],[-5,-19],[0,-18]],'#fff1a8',2);
+    line(c,[[6,-24],[11,-22],[15,-22]],'#fff1a8',2);
+    line(c,[[-10,-10],[-3,-7]],'#643b2a',3);line(c,[[3,-7],[12,-11]],'#643b2a',3);
+    line(c,[[-8,-7],[-3,-6]],'#fff4b3',2);line(c,[[5,-6],[10,-8]],'#fff4b3',2);
+    shape(c,[[0,-5],[5,0],[-1,2],[-4,0]],'#b47145',null);
+    shape(c,[[-7,4],[1,2],[11,3],[8,11],[-3,11]],'#522629');
+    line(c,[[-6,4],[9,4]],'#fff0cf',2);
+    shape(c,[[-6,4],[-3,10],[-1,4]],'#fff2d5',null);shape(c,[[5,4],[7,9],[9,4]],'#fff2d5',null);
+    line(c,[[-2,12],[6,12]],'#a4643f',1.5);
+    c.restore();
+    this.sabretoothLimb(c,[28,-127],elbow,hand,31,orange,shade);
+    oval(c,30,-124,15,14,orange);line(c,[[27,-132],[35,-127]],light,3);
+    line(c,[[elbow[0]-5,elbow[1]-9],[elbow[0]+2,elbow[1]-2]],light,3);
+    this.drawClaws(c,hand,clawAngle);
+    c.restore();
+    leg([12,-67],knee,foot,false);
+    if(actor.hitFlash>0){c.save();c.globalAlpha=Math.min(1,actor.hitFlash/.14);burst(c,[8,-110],1.5,'#fff4ce');c.restore();}
+    c.restore();
+  }
+
+  sabretoothLimb(c, shoulder, elbow, hand, width, fill, shade) {
+    // Rounded muscle contours around individually posed joints.
+    const muscle=(from,to,w)=>{
+      const angle=Math.atan2(to[1]-from[1],to[0]-from[0]),nx=-Math.sin(angle),ny=Math.cos(angle);
+      const mid=[(from[0]+to[0])/2,(from[1]+to[1])/2];
+      c.beginPath();c.moveTo(from[0]+nx*w*.32,from[1]+ny*w*.32);
+      c.quadraticCurveTo(mid[0]+nx*w*.68,mid[1]+ny*w*.68,to[0]+nx*w*.28,to[1]+ny*w*.28);
+      c.quadraticCurveTo(to[0]+Math.cos(angle)*5,to[1]+Math.sin(angle)*5,to[0]-nx*w*.28,to[1]-ny*w*.28);
+      c.quadraticCurveTo(mid[0]-nx*w*.62,mid[1]-ny*w*.62,from[0]-nx*w*.32,from[1]-ny*w*.32);
+      c.closePath();c.fillStyle=fill;c.fill();c.strokeStyle='#111b30';c.lineWidth=2;c.stroke();
+      line(c,[[from[0]-nx*w*.18,from[1]-ny*w*.18],[mid[0]-nx*w*.25,mid[1]-ny*w*.25],[to[0]-nx*w*.12,to[1]-ny*w*.12]],shade,2.5);
+    };
+    muscle(shoulder,elbow,width);muscle(elbow,hand,width*.8);
+  }
+
+  drawClaws(c, pos, angle = 0) {
+    c.save();c.translate(...pos);c.rotate(angle);
+    shape(c,[[-10,-7],[1,-11],[10,-5],[12,5],[5,11],[-7,10],[-12,2]],'#ae603a');
+    line(c,[[-7,-4],[3,-5]],'#e4a169',2);
+    for(let i=0;i<4;i++){
+      const y=-8+i*5;
+      oval(c,6,y,4,3,'#c98551');
+      c.beginPath();c.moveTo(8,y-2);c.quadraticCurveTo(21,y-5,26-i*1.5,y+4);
+      c.quadraticCurveTo(18,y+1,9,y+2);c.closePath();c.fillStyle='#fff0ca';c.fill();
+      c.strokeStyle='#44302c';c.lineWidth=1.2;c.stroke();
+    }
+    shape(c,[[-7,1],[-16,0],[-19,7],[-9,7]],'#bf794c');
     c.restore();
   }
 
@@ -652,7 +744,7 @@ export class CharacterRenderer {
     } else if (state === 'hurt') {
       lean = -0.3; head = -0.4; bodyY = 0; frontHand = [10, -40]; backHand = [-15, -50];
     } else if (state === 'defeated') {
-      lean = -1.5; head = -0.5; bodyY = 30; frontFoot = [25, -10]; backFoot = [10, -5];
+      lean = 0; head = -0.5; bodyY = 0; frontFoot = [25, -10]; backFoot = [10, -5];
     }
 
     c.save(); c.translate(x, y); c.scale((actor.facing || 1) * scale, scale);
@@ -699,119 +791,164 @@ export class CharacterRenderer {
   }
 
   drawTyson(c, actor, x, y, scale = 1) {
-    const time = actor.time || 0, enraged = Boolean(actor.enraged), state = actor.state === 'strongAttack' ? 'strong' : actor.state;
-    const { stage, k } = attackStage(actor);
-
-    // Boxing stance poses
-    let lean = 0, head = 0, bodyY = 0;
-    let frontFoot = [20,0], frontKnee = [30,-25], backFoot = [-20,-5], backKnee = [-15,-25];
-    let frontElbow = [20,-60], frontHand = [30,-75], backElbow = [-10,-60], backHand = [0,-80];
-
-    if (state === 'idle' || state === 'walk') {
-      const bob = Math.sin(time * (state === 'walk' ? 12 : 6));
-      lean = bob * 0.05 + 0.1;
-      bodyY = bob * 3;
-      frontHand = [20 + bob * 2, -75 - bob * 2]; // Guard up
-      backHand = [-5 - bob * 2, -85 - bob * 2];
-      if (state === 'walk') {
-        const stride = Math.sin(time * 12);
-        frontFoot[0] += stride * 15; frontKnee[0] += stride * 8;
-        backFoot[0] -= stride * 15; backKnee[0] -= stride * 8;
+    // Prime-era Tyson: original Canvas anatomy, no facial tattoo or external assets.
+    const state={strongAttack:'strong',specialAttack:'special'}[actor.state] || actor.state;
+    const {stage,k}=attackStage(actor),move=actor.attack?.id,time=actor.time || 0;
+    const stride=state==='walk'?Math.sin(time*12):0;
+    const skin='#a16c47',shade='#69452f',light='#c38b60',deep='#49352e';
+    let lean=.05,bob=Math.sin(time*(state==='walk'?8:3))*1.3;
+    let rearKnee=[-21-stride*8,-34],rearFoot=[-26-stride*15,-2],knee=[24+stride*8,-34],foot=[29+stride*15,-2];
+    let rearElbow=[-39,-107],rearHand=[-26,-143],elbow=[40,-108],hand=[27,-140];
+    let headTilt=0;
+    const jab=move==='jab'||(!move&&state==='punch'),hook=move==='hook',uppercut=move==='uppercut';
+    if(jab) {
+      if(stage==='windup'){lean=-.06;hand=[24,-140];elbow=[34,-105];}
+      else if(stage==='active') {
+        lean=.14;
+        if(k<.5){elbow=[47,-126];hand=[76,-132];}
+        else{rearElbow=[38,-124];rearHand=[73,-130];hand=[23,-140];}
+      }else{elbow=[41,-110];hand=[33,-131];}
+    }else if(hook||(!move&&state==='strong')){
+      if(stage==='windup'){lean=-.12;elbow=[50,-111];hand=[37,-138];}
+      else if(stage==='active'){
+        lean=.19;
+        if(actor.closeAttacks%2===0){rearElbow=[45,-110];rearHand=[59,-139];}
+        else{elbow=[52,-110];hand=[66,-141];}
       }
-    } else if (state === 'punch' || state === 'strong' || state === 'charge' || state === 'shove') { // jab, hook/uppercut, rush, weave
-      if (stage === 'windup') {
-        lean = -0.2; bodyY = 5; backHand = [-25, -90]; frontHand = [15, -70];
-      } else if (stage === 'active') {
-        lean = 0.3; bodyY = -2; frontHand = [50, -85]; backHand = [-10, -75];
-      } else {
-        lean = 0.1; frontHand = [35, -80];
-      }
-    } else if (state === 'hurt') {
-      lean = -0.3; head = -0.4; bodyY = 0; frontHand = [10, -50]; backHand = [-15, -60];
-    } else if (state === 'defeated') {
-      lean = -1.5; head = -0.5; bodyY = 40; frontFoot = [30, -10]; backFoot = [10, -5];
+    }else if(uppercut){
+      if(stage==='windup'){bob+=9;lean=.1;elbow=[29,-97];hand=[23,-109];}
+      else if(stage==='active'){bob-=3;lean=-.07;elbow=[35,-118];hand=[43,-168];}
+      else{elbow=[37,-109];hand=[33,-141];}
+    }else if(move==='weave'||state==='shove'||state==='backstep'){
+      lean=stage==='active'?.18:-.16;bob+=stage==='active'?0:9;headTilt=-.08;
+      if(stage==='active'){elbow=[47,-126];hand=[71,-134];}
+    }else if(move==='rush'||state==='charge'){
+      lean=stage==='windup'?-.09:.2;
+      if(stage==='active'){elbow=[47,-119];hand=[65,-135];rearHand=[-19,-139];rearFoot=[-44,-3];}
+    }else if(state==='hurt'){lean=-.19;headTilt=-.15;hand=[36,-115];rearHand=[-31,-125];}
+    else if(state==='intro'||state==='roar'){hand=[29,-139];rearHand=[-27,-143];bob=Math.sin(time*5)*1.6;}
+    c.save();c.translate(x,y);c.scale((actor.facing || 1)*scale,scale);
+    if(state==='defeated'){
+      const fall=actor.actionTime>0?1-actor.actionTime/(actor.actionDuration || 1):1;
+      c.translate(54*fall,-14*fall);c.rotate(-1.5*fall);lean=0;hand=[36,-109];rearHand=[-37,-117];
     }
-
-    c.save(); c.translate(x, y); c.scale((actor.facing || 1) * scale, scale);
-    if (state === 'defeated') {
-      const fall = actor.actionDuration && actor.actionTime > 0 ? 1 - actor.actionTime / actor.actionDuration : 1;
-      c.translate(50 * fall * fall, -10 * fall); c.rotate(-1.5 * fall * fall);
+    c.translate(0,bob);
+    const leg=(hip,joint,to,rear)=>{
+      this.tysonLimb(c,hip,joint,to,25,rear?'#885b3d':skin,shade);
+      line(c,[[hip[0]+3,hip[1]+5],[joint[0]+5,joint[1]-7]],rear?shade:light,2.5);
+      this.tysonShoe(c,to);
+    };
+    leg([-12,-63],rearKnee,rearFoot,true);
+    c.save();c.translate(0,-68);c.rotate(lean);c.translate(0,68);
+    // Rounded lats, thick trapezius and a compact tapered waist.
+    c.beginPath();c.moveTo(-30,-133);c.quadraticCurveTo(-21,-141,-12,-148);
+    c.quadraticCurveTo(0,-153,14,-147);c.quadraticCurveTo(24,-139,32,-132);
+    c.bezierCurveTo(43,-123,32,-104,26,-93);c.quadraticCurveTo(20,-78,18,-66);
+    c.quadraticCurveTo(1,-61,-18,-67);c.quadraticCurveTo(-18,-83,-27,-99);
+    c.bezierCurveTo(-34,-111,-40,-126,-30,-133);c.closePath();c.fillStyle=skin;c.fill();
+    c.strokeStyle='#111b30';c.lineWidth=2;c.stroke();
+    c.beginPath();c.moveTo(-30,-127);c.quadraticCurveTo(-32,-108,-21,-96);
+    c.lineTo(-15,-70);c.lineTo(-21,-74);c.quadraticCurveTo(-28,-96,-31,-104);c.closePath();c.fillStyle=shade;c.fill();
+    // Pectoral volumes have highlights and curved lower edges rather than rectangular panels.
+    oval(c,-14,-123,19,13,'#ad7650',null);oval(c,16,-123,20,14,'#b78055',null);
+    line(c,[[-29,-119],[-18,-112],[-4,-114]],deep,2);
+    line(c,[[3,-114],[17,-111],[31,-119]],deep,2);
+    line(c,[[-22,-132],[-14,-134],[-6,-131]],light,2.5);line(c,[[7,-132],[17,-135],[25,-132]],'#cf9464',2.5);
+    line(c,[[0,-130],[0,-115]],shade,1.5);
+    line(c,[[-12,-145],[-13,-138],[-22,-135]],light,2);line(c,[[14,-145],[16,-138],[25,-135]],light,2);
+    // Natural abdomen: shallow paired masses and oblique shading.
+    for(let i=0;i<3;i++){
+      oval(c,-6,-103+i*11,6,5,'#ad754c',null);oval(c,7,-103+i*11,6,5,'#b37b50',null);
+      line(c,[[-10,-98+i*11],[-3,-97+i*11]],shade,1.4);line(c,[[4,-97+i*11],[11,-98+i*11]],shade,1.4);
     }
-
-    const hipY = -45 + bodyY;
-    const skin = '#6e4632', skinShade = '#4a2c1e', trunks = '#1a1a1a', trunksHighlight = '#333333', glove = enraged ? '#ff3333' : '#cc2222';
-
-    // Back Leg
-    limb(c, [-10, hipY], backKnee, backFoot, 24, skin, skinShade);
-    this.tysonShoe(c, backFoot);
-
-    // Front Leg
-    limb(c, [10, hipY], frontKnee, frontFoot, 26, skin, skinShade);
-    this.tysonShoe(c, frontFoot);
-
-    // Trunks
-    shape(c, [[-16, hipY-10], [18, hipY-10], [22, hipY+15], [8, hipY+20], [-5, hipY+12], [-18, hipY+15]], trunks, trunksHighlight);
-    line(c, [[-16, hipY-10], [18, hipY-10]], '#ffffff', 6); // Waistband
-
-    c.save(); c.translate(0, hipY); c.rotate(lean); c.translate(0, 45);
-
-    // Back Arm
-    limb(c, [-20, -95], backElbow, backHand, 26, skin, skinShade);
-    this.tysonGlove(c, backHand, glove);
-
-    // Muscular Torso (compact, thick neck)
-    shape(c, [[-22, -100], [24, -100], [18, -60], [-15, -60]], skin, skinShade);
-    line(c, [[-15, -95], [15, -95]], skinShade, 4); // Pecs
-    line(c, [[0, -90], [0, -60]], skinShade, 3); // Abs line
-
-    // Head (compact, face tattoo)
-    c.save(); c.translate(2, -105); c.rotate(head);
-    oval(c, 0, -10, 14, 16, skin);
-    line(c, [[4, -14], [10, -8], [6, -4]], '#2a1a14', 2.5); // Signature face tattoo
-    line(c, [[8, -12], [12, -12]], '#000000', 3); // Eye
-    if (state === 'hurt' || state === 'defeated') {
-      line(c, [[8, -2], [12, -4]], '#000000', 2); // Mouth gasp
-    } else {
-      line(c, [[8, -4], [12, -4]], '#000000', 2); // Mouth tight
-    }
+    line(c,[[0,-107],[0,-79]],'#825337',1.3);
+    line(c,[[24,-106],[18,-94],[15,-82]],light,2);
+    line(c,[[-21,-103],[-16,-92],[-14,-81]],deep,1.5);
+    // Thick neck joins the jaw to the trapezius.
+    shape(c,[[-12,-139],[-14,-157],[15,-157],[16,-138],[6,-134],[-4,-134]],skin);
+    line(c,[[-8,-142],[0,-137],[9,-142]],shade,2);
+    c.save();c.translate(2,-154);c.rotate(headTilt);
+    // Broad cheekbones and powerful jaw; short close-cropped hair follows the skull.
+    c.beginPath();c.moveTo(-17,-15);c.quadraticCurveTo(-17,-25,0,-26);
+    c.quadraticCurveTo(18,-25,19,-13);c.lineTo(18,2);c.quadraticCurveTo(16,12,8,17);
+    c.quadraticCurveTo(0,20,-9,15);c.quadraticCurveTo(-17,9,-18,0);c.closePath();
+    c.fillStyle=skin;c.fill();c.strokeStyle='#111b30';c.lineWidth=2;c.stroke();
+    shape(c,[[-16,-8],[-12,2],[-8,12],[1,15],[-9,15],[-16,8]],shade,null);
+    oval(c,-18,-1,3,5,'#8d5c3d');oval(c,18,-1,3,5,skin);
+    c.beginPath();c.moveTo(-17,-13);c.quadraticCurveTo(-21,-28,-7,-31);
+    c.quadraticCurveTo(7,-35,16,-26);c.quadraticCurveTo(21,-19,18,-12);
+    c.lineTo(12,-19);c.quadraticCurveTo(2,-22,-10,-19);c.closePath();c.fillStyle='#191d26';c.fill();c.strokeStyle='#111b30';c.stroke();
+    line(c,[[-11,-25],[-4,-28],[7,-27],[13,-23]],'#3c3836',1.5);
+    line(c,[[-12,-9],[-5,-7]],deep,3);line(c,[[3,-7],[12,-10]],deep,3);
+    line(c,[[-11,-5],[-5,-4]],'#e9c59a',2);line(c,[[4,-4],[11,-6]],'#e9c59a',2);
+    oval(c,-7,-4,1.4,1.5,'#151d28',null);oval(c,7,-5,1.4,1.5,'#151d28',null);
+    line(c,[[0,-6],[-2,1],[2,4],[7,2]],shade,1.8);
+    line(c,[[1,0],[3,1]],light,1.6);
+    line(c,[[-11,1],[-7,3]],shade,1.2);line(c,[[9,2],[13,0]],shade,1.2);
+    const hurt=state==='hurt'||state==='defeated';
+    if(hurt){oval(c,3,9,5,3,deep);line(c,[[0,8],[6,8]],'#e9cba6',1.3);}
+    else{line(c,[[-5,8],[2,7],[9,8]],'#54342f',2);line(c,[[-2,10],[5,10]],'#ce9161',1.8);}
+    line(c,[[-4,15],[7,15]],'#b98155',1.5);
     c.restore();
-
-    // Front Arm
-    limb(c, [22, -95], frontElbow, frontHand, 28, skin, skinShade);
-    this.tysonGlove(c, frontHand, glove);
-
+    // Both independently posed arms stay connected to shoulder and glove wrist pivots.
+    this.tysonLimb(c,[-30,-126],rearElbow,rearHand,27,'#8e6040',shade);
+    oval(c,-29,-126,14,13,'#986946');line(c,[[-36,-132],[-28,-136]],light,2);
+    this.tysonGlove(c,rearHand,'#bd2b36',rearElbow);
+    this.tysonLimb(c,[30,-126],elbow,hand,29,skin,shade);
+    oval(c,30,-126,15,14,'#b27c51');line(c,[[25,-135],[34,-132],[38,-127]],'#cd9465',2.5);
+    line(c,[[elbow[0]-5,elbow[1]-7],[elbow[0]+1,elbow[1]-2]],light,2);
+    this.tysonGlove(c,hand,actor.enraged?'#ed3541':'#d9343e',elbow);
+    // Soft black trunks sit over the hips with separate shorts openings.
+    c.beginPath();c.moveTo(-21,-68);c.quadraticCurveTo(0,-64,22,-68);c.lineTo(26,-48);
+    c.quadraticCurveTo(24,-41,8,-43);c.lineTo(1,-50);c.lineTo(-8,-43);
+    c.quadraticCurveTo(-18,-42,-24,-46);c.closePath();c.fillStyle='#1c2230';c.fill();c.strokeStyle='#101827';c.lineWidth=2;c.stroke();
+    line(c,[[-20,-65],[0,-63],[21,-65]],'#e6ddd0',5);
+    line(c,[[-15,-59],[-17,-48]],'#414554',2);line(c,[[17,-58],[20,-48]],'#4c505e',2);
     c.restore();
-
-    // Effects
-    if (enraged && state !== 'defeated') {
-      c.save(); c.globalCompositeOperation = 'overlay';
-      c.beginPath(); c.ellipse(0, -60, 40, 60, 0, 0, Math.PI * 2);
-      c.fillStyle = '#ff000033'; c.fill();
-      c.restore();
+    leg([11,-51],knee,foot,false);
+    if(actor.enraged&&state!=='defeated'){
+      c.save();c.globalAlpha=.12;c.strokeStyle='#fa7b5e';c.lineWidth=4;c.beginPath();c.ellipse(0,-108,44,64,0,0,Math.PI*2);c.stroke();c.restore();
     }
-    if (actor.hitFlash > 0) {
-      c.save(); c.globalAlpha = Math.min(1, actor.hitFlash / .14);
-      burst(c, [10, -70], 1.5, '#ffffff');
-      c.restore();
-    }
-
+    if(actor.hitFlash>0){c.save();c.globalAlpha=Math.min(1,actor.hitFlash/.14);burst(c,[9,-117],1.5,'#fff2cf');c.restore();}
     c.restore();
+  }
+
+  tysonLimb(c, from, joint, to, width, skin, shade) {
+    const muscle=(a,b,w)=>{
+      const angle=Math.atan2(b[1]-a[1],b[0]-a[0]),nx=-Math.sin(angle),ny=Math.cos(angle),mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;
+      c.beginPath();c.moveTo(a[0]+nx*w*.34,a[1]+ny*w*.34);
+      c.quadraticCurveTo(mx+nx*w*.62,my+ny*w*.62,b[0]+nx*w*.3,b[1]+ny*w*.3);
+      c.quadraticCurveTo(b[0]+Math.cos(angle)*4,b[1]+Math.sin(angle)*4,b[0]-nx*w*.3,b[1]-ny*w*.3);
+      c.quadraticCurveTo(mx-nx*w*.57,my-ny*w*.57,a[0]-nx*w*.34,a[1]-ny*w*.34);
+      c.closePath();c.fillStyle=skin;c.fill();c.strokeStyle='#111b30';c.lineWidth=2;c.stroke();
+      line(c,[[a[0]-nx*w*.14,a[1]-ny*w*.14],[mx-nx*w*.24,my-ny*w*.24],[b[0]-nx*w*.1,b[1]-ny*w*.1]],shade,2);
+    };
+    muscle(from,joint,width);oval(c,...joint,width*.3,width*.3,skin);muscle(joint,to,width*.8);
   }
 
   tysonShoe(c, pos) {
-    c.save(); c.translate(pos[0], pos[1]);
-    shape(c, [[-10, -5], [5, -5], [12, 4], [-12, 4]], '#111', '#222');
-    line(c, [[-8, 2], [10, 2]], '#fff', 1.5);
+    c.save();c.translate(...pos);
+    c.beginPath();c.moveTo(-9,-18);c.quadraticCurveTo(0,-21,8,-18);c.lineTo(9,-5);
+    c.quadraticCurveTo(16,-3,18,2);c.quadraticCurveTo(3,7,-11,4);c.closePath();
+    c.fillStyle='#161d29';c.fill();c.strokeStyle='#0c1527';c.lineWidth=2;c.stroke();
+    line(c,[[-10,3],[16,3]],'#b7b6b3',2);line(c,[[-5,-16],[-6,-5]],'#434856',2);
+    for(let i=0;i<3;i++)line(c,[[-1,-14+i*4],[4,-11+i*4]],'#8e9297',1);
     c.restore();
   }
 
-  tysonGlove(c, pos, color) {
-    c.save(); c.translate(pos[0], pos[1]);
-    oval(c, 0, 0, 18, 16, color);
-    shape(c, [[-10, -5], [-10, 5], [-16, 6], [-16, -6]], '#fff'); // White wrist tape
+  tysonGlove(c, pos, color, elbow = [pos[0]-20,pos[1]]) {
+    c.save();c.translate(...pos);c.rotate(Math.atan2(pos[1]-elbow[1],pos[0]-elbow[0]));
+    // White tape wraps the wrist; the padded fist and thumb share that exact pivot.
+    shape(c,[[-15,-7],[-4,-7],[-4,7],[-15,7]],'#eee6d7');
+    line(c,[[-12,-5],[-7,-5]],'#b8ad9f',1);line(c,[[-12,2],[-7,2]],'#b8ad9f',1);
+    c.beginPath();c.moveTo(-6,-9);c.bezierCurveTo(-1,-16,12,-16,16,-9);
+    c.bezierCurveTo(22,-3,20,9,12,12);c.quadraticCurveTo(1,15,-5,8);c.closePath();
+    c.fillStyle=color;c.fill();c.strokeStyle='#181a2c';c.lineWidth=2;c.stroke();
+    c.beginPath();c.moveTo(-3,3);c.quadraticCurveTo(2,-1,7,3);c.quadraticCurveTo(9,9,3,12);
+    c.quadraticCurveTo(-4,12,-6,7);c.closePath();c.fillStyle='#a52130';c.fill();c.stroke();
+    line(c,[[0,-10],[8,-11],[13,-7]],'#ff9682',2.5);line(c,[[10,7],[14,4]],'#ee6b65',1.5);
     c.restore();
   }
-
 
   preview(canvas, config, state = 'idle') {
     const c = canvas.getContext('2d'); c.clearRect(0,0,canvas.width,canvas.height);

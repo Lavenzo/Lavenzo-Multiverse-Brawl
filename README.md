@@ -8,6 +8,10 @@ This is a JavaScript ES module, HTML5 Canvas and Vite hobby game. **Milestones 1
 
 ## Launch
 
+**Current Milestone 4.5 status:** Stages 1 and 2 are playable. Continue from City Streets to Underground Fight Club using the Stage 1 clear screen, or select Stage 2 in Developer Mode. Stages 3–8 remain unavailable. Tyson's AI move-role mismatch is repaired and verified through real movement, attacks, post-hit recovery, phase 2 and combat defeat for all four heroes. Stage 2 has dedicated Canvas character art, cached arena scenery and a stage-dependent footer. Earlier Stage-1-only descriptions in this README are historical; see the latest DEVELOPMENT_STATUS.md entry for evidence and limits.
+
+If another project occupies port 5173, run tests in PowerShell with `$env:PLAYWRIGHT_PORT='5174'; npm test`. The default test port remains 5173. Stop for local manual review; this milestone does not authorize a merge, push or deployment.
+
 Use Node.js 22.12+ (or a compatible version supported by Vite 7).
 
 ```sh
