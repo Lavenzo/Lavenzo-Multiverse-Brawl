@@ -213,7 +213,7 @@ test('developer boss tools, boss HUD, keyboard combat, stage clear and retry in 
   expect(await page.evaluate(()=>window.gameTestAPI.getPlayerHealth())).toBe(140); expect(await page.evaluate(()=>window.gameTestAPI.getEnemyCount())).toBe(2);
   await expect(page.getByTestId('boss-hud')).toBeHidden();
   // Spawn immediately, restart the fight, Shift+3 shortcut, then return to normal Stage 1 waves.
-  await page.keyboard.press('p'); await page.getByTestId('dev-spawn-kingpin').click();
+  await page.keyboard.press('p'); await page.getByTestId('dev-spawn-boss').click();
   expect(await boss()).toMatchObject({encounter:'boss',active:true,boss:{name:'Wilson Fisk — The Kingpin',health:1250,entering:false}}); await expect(page.getByTestId('boss-hud')).toBeVisible();
   expect(await setBossHealth(300)).toBe(true); expect(await setBossHealth(0)).toBe(false); expect(await setBossHealth(12.5)).toBe(false);
   await page.keyboard.press('p'); await page.getByTestId('dev-restart-boss').click();

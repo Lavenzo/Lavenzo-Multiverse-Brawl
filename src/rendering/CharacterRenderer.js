@@ -89,6 +89,7 @@ function attackStage(actor) {
 export class CharacterRenderer {
   draw(c, actor, x, y, scale = 1) {
     if (actor.config.id === 'kingpin') { this.kingpin(c,actor,x,y,scale); return; }
+    if (actor.config.id === 'tyson') return this.drawTyson(c, actor, x, y, scale);
     const p = palettes[actor.config.id] || palettes.axel;
     const id = actor.config.id, state = actor.state;
     const walk = state === 'walk', jumping = state === 'jump' || actor.z > 0;
@@ -458,6 +459,235 @@ export class CharacterRenderer {
     c.restore();
   }
 
+
+  drawTyson(c, actor, x, y, scale = 1) {
+    const time = actor.time || 0, enraged = Boolean(actor.enraged), state = actor.state === 'strongAttack' ? 'strong' : actor.state;
+    const { stage, k } = attackStage(actor);
+
+    // Boxing stance poses
+    let lean = 0, head = 0, bodyY = 0;
+    let frontFoot = [20,0], frontKnee = [30,-25], backFoot = [-20,-5], backKnee = [-15,-25];
+    let frontElbow = [20,-60], frontHand = [30,-75], backElbow = [-10,-60], backHand = [0,-80];
+
+    if (state === 'idle' || state === 'walk') {
+      const bob = Math.sin(time * (state === 'walk' ? 12 : 6));
+      lean = bob * 0.05 + 0.1;
+      bodyY = bob * 3;
+      frontHand = [20 + bob * 2, -75 - bob * 2]; // Guard up
+      backHand = [-5 - bob * 2, -85 - bob * 2];
+      if (state === 'walk') {
+        const stride = Math.sin(time * 12);
+        frontFoot[0] += stride * 15; frontKnee[0] += stride * 8;
+        backFoot[0] -= stride * 15; backKnee[0] -= stride * 8;
+      }
+    } else if (state === 'punch' || state === 'strong' || state === 'charge' || state === 'shove') { // jab, hook/uppercut, rush, weave
+      if (stage === 'windup') {
+        lean = -0.2; bodyY = 5; backHand = [-25, -90]; frontHand = [15, -70];
+      } else if (stage === 'active') {
+        lean = 0.3; bodyY = -2; frontHand = [50, -85]; backHand = [-10, -75];
+      } else {
+        lean = 0.1; frontHand = [35, -80];
+      }
+    } else if (state === 'hurt') {
+      lean = -0.3; head = -0.4; bodyY = 0; frontHand = [10, -50]; backHand = [-15, -60];
+    } else if (state === 'defeated') {
+      lean = -1.5; head = -0.5; bodyY = 40; frontFoot = [30, -10]; backFoot = [10, -5];
+    }
+
+    c.save(); c.translate(x, y); c.scale((actor.facing || 1) * scale, scale);
+    if (state === 'defeated') {
+      const fall = actor.actionDuration && actor.actionTime > 0 ? 1 - actor.actionTime / actor.actionDuration : 1;
+      c.translate(50 * fall * fall, -10 * fall); c.rotate(-1.5 * fall * fall);
+    }
+
+    const hipY = -45 + bodyY;
+    const skin = '#6e4632', skinShade = '#4a2c1e', trunks = '#1a1a1a', trunksHighlight = '#333333', glove = enraged ? '#ff3333' : '#cc2222';
+
+    // Back Leg
+    limb(c, [-10, hipY], backKnee, backFoot, 24, skin, skinShade);
+    this.tysonShoe(c, backFoot);
+
+    // Front Leg
+    limb(c, [10, hipY], frontKnee, frontFoot, 26, skin, skinShade);
+    this.tysonShoe(c, frontFoot);
+
+    // Trunks
+    shape(c, [[-16, hipY-10], [18, hipY-10], [22, hipY+15], [8, hipY+20], [-5, hipY+12], [-18, hipY+15]], trunks, trunksHighlight);
+    line(c, [[-16, hipY-10], [18, hipY-10]], '#ffffff', 6); // Waistband
+
+    c.save(); c.translate(0, hipY); c.rotate(lean); c.translate(0, 45);
+
+    // Back Arm
+    limb(c, [-20, -95], backElbow, backHand, 26, skin, skinShade);
+    this.tysonGlove(c, backHand, glove);
+
+    // Muscular Torso (compact, thick neck)
+    shape(c, [[-22, -100], [24, -100], [18, -60], [-15, -60]], skin, skinShade);
+    line(c, [[-15, -95], [15, -95]], skinShade, 4); // Pecs
+    line(c, [[0, -90], [0, -60]], skinShade, 3); // Abs line
+
+    // Head (compact, face tattoo)
+    c.save(); c.translate(2, -105); c.rotate(head);
+    oval(c, 0, -10, 14, 16, skin);
+    line(c, [[4, -14], [10, -8], [6, -4]], '#2a1a14', 2.5); // Signature face tattoo
+    line(c, [[8, -12], [12, -12]], '#000000', 3); // Eye
+    if (state === 'hurt' || state === 'defeated') {
+      line(c, [[8, -2], [12, -4]], '#000000', 2); // Mouth gasp
+    } else {
+      line(c, [[8, -4], [12, -4]], '#000000', 2); // Mouth tight
+    }
+    c.restore();
+
+    // Front Arm
+    limb(c, [22, -95], frontElbow, frontHand, 28, skin, skinShade);
+    this.tysonGlove(c, frontHand, glove);
+
+    c.restore();
+
+    // Effects
+    if (enraged && state !== 'defeated') {
+      c.save(); c.globalCompositeOperation = 'overlay';
+      c.beginPath(); c.ellipse(0, -60, 40, 60, 0, 0, Math.PI * 2);
+      c.fillStyle = '#ff000033'; c.fill();
+      c.restore();
+    }
+    if (actor.hitFlash > 0) {
+      c.save(); c.globalAlpha = Math.min(1, actor.hitFlash / .14);
+      burst(c, [10, -70], 1.5, '#ffffff');
+      c.restore();
+    }
+
+    c.restore();
+  }
+
+  tysonShoe(c, pos) {
+    c.save(); c.translate(pos[0], pos[1]);
+    shape(c, [[-10, -5], [5, -5], [12, 4], [-12, 4]], '#111', '#222');
+    line(c, [[-8, 2], [10, 2]], '#fff', 1.5);
+    c.restore();
+  }
+
+  tysonGlove(c, pos, color) {
+    c.save(); c.translate(pos[0], pos[1]);
+    oval(c, 0, 0, 18, 16, color);
+    shape(c, [[-10, -5], [-10, 5], [-16, 6], [-16, -6]], '#fff'); // White wrist tape
+    c.restore();
+  }
+
+
+  drawTyson(c, actor, x, y, scale = 1) {
+    const time = actor.time || 0, enraged = Boolean(actor.enraged), state = actor.state === 'strongAttack' ? 'strong' : actor.state;
+    const { stage, k } = attackStage(actor);
+
+    // Boxing stance poses
+    let lean = 0, head = 0, bodyY = 0;
+    let frontFoot = [20,0], frontKnee = [30,-25], backFoot = [-20,-5], backKnee = [-15,-25];
+    let frontElbow = [20,-60], frontHand = [30,-75], backElbow = [-10,-60], backHand = [0,-80];
+
+    if (state === 'idle' || state === 'walk') {
+      const bob = Math.sin(time * (state === 'walk' ? 12 : 6));
+      lean = bob * 0.05 + 0.1;
+      bodyY = bob * 3;
+      frontHand = [20 + bob * 2, -75 - bob * 2]; // Guard up
+      backHand = [-5 - bob * 2, -85 - bob * 2];
+      if (state === 'walk') {
+        const stride = Math.sin(time * 12);
+        frontFoot[0] += stride * 15; frontKnee[0] += stride * 8;
+        backFoot[0] -= stride * 15; backKnee[0] -= stride * 8;
+      }
+    } else if (state === 'punch' || state === 'strong' || state === 'charge' || state === 'shove') { // jab, hook/uppercut, rush, weave
+      if (stage === 'windup') {
+        lean = -0.2; bodyY = 5; backHand = [-25, -90]; frontHand = [15, -70];
+      } else if (stage === 'active') {
+        lean = 0.3; bodyY = -2; frontHand = [50, -85]; backHand = [-10, -75];
+      } else {
+        lean = 0.1; frontHand = [35, -80];
+      }
+    } else if (state === 'hurt') {
+      lean = -0.3; head = -0.4; bodyY = 0; frontHand = [10, -50]; backHand = [-15, -60];
+    } else if (state === 'defeated') {
+      lean = -1.5; head = -0.5; bodyY = 40; frontFoot = [30, -10]; backFoot = [10, -5];
+    }
+
+    c.save(); c.translate(x, y); c.scale((actor.facing || 1) * scale, scale);
+    if (state === 'defeated') {
+      const fall = actor.actionDuration && actor.actionTime > 0 ? 1 - actor.actionTime / actor.actionDuration : 1;
+      c.translate(50 * fall * fall, -10 * fall); c.rotate(-1.5 * fall * fall);
+    }
+
+    const hipY = -45 + bodyY;
+    const skin = '#6e4632', skinShade = '#4a2c1e', trunks = '#1a1a1a', trunksHighlight = '#333333', glove = enraged ? '#ff3333' : '#cc2222';
+
+    // Back Leg
+    limb(c, [-10, hipY], backKnee, backFoot, 24, skin, skinShade);
+    this.tysonShoe(c, backFoot);
+
+    // Front Leg
+    limb(c, [10, hipY], frontKnee, frontFoot, 26, skin, skinShade);
+    this.tysonShoe(c, frontFoot);
+
+    // Trunks
+    shape(c, [[-16, hipY-10], [18, hipY-10], [22, hipY+15], [8, hipY+20], [-5, hipY+12], [-18, hipY+15]], trunks, trunksHighlight);
+    line(c, [[-16, hipY-10], [18, hipY-10]], '#ffffff', 6); // Waistband
+
+    c.save(); c.translate(0, hipY); c.rotate(lean); c.translate(0, 45);
+
+    // Back Arm
+    limb(c, [-20, -95], backElbow, backHand, 26, skin, skinShade);
+    this.tysonGlove(c, backHand, glove);
+
+    // Muscular Torso (compact, thick neck)
+    shape(c, [[-22, -100], [24, -100], [18, -60], [-15, -60]], skin, skinShade);
+    line(c, [[-15, -95], [15, -95]], skinShade, 4); // Pecs
+    line(c, [[0, -90], [0, -60]], skinShade, 3); // Abs line
+
+    // Head (compact, face tattoo)
+    c.save(); c.translate(2, -105); c.rotate(head);
+    oval(c, 0, -10, 14, 16, skin);
+    line(c, [[4, -14], [10, -8], [6, -4]], '#2a1a14', 2.5); // Signature face tattoo
+    line(c, [[8, -12], [12, -12]], '#000000', 3); // Eye
+    if (state === 'hurt' || state === 'defeated') {
+      line(c, [[8, -2], [12, -4]], '#000000', 2); // Mouth gasp
+    } else {
+      line(c, [[8, -4], [12, -4]], '#000000', 2); // Mouth tight
+    }
+    c.restore();
+
+    // Front Arm
+    limb(c, [22, -95], frontElbow, frontHand, 28, skin, skinShade);
+    this.tysonGlove(c, frontHand, glove);
+
+    c.restore();
+
+    // Effects
+    if (enraged && state !== 'defeated') {
+      c.save(); c.globalCompositeOperation = 'overlay';
+      c.beginPath(); c.ellipse(0, -60, 40, 60, 0, 0, Math.PI * 2);
+      c.fillStyle = '#ff000033'; c.fill();
+      c.restore();
+    }
+    if (actor.hitFlash > 0) {
+      c.save(); c.globalAlpha = Math.min(1, actor.hitFlash / .14);
+      burst(c, [10, -70], 1.5, '#ffffff');
+      c.restore();
+    }
+
+    c.restore();
+  }
+
+  tysonShoe(c, pos) {
+    c.save(); c.translate(pos[0], pos[1]);
+    shape(c, [[-10, -5], [5, -5], [12, 4], [-12, 4]], '#111', '#222');
+    line(c, [[-8, 2], [10, 2]], '#fff', 1.5);
+    c.restore();
+  }
+
+  tysonGlove(c, pos, color) {
+    c.save(); c.translate(pos[0], pos[1]);
+    oval(c, 0, 0, 18, 16, color);
+    shape(c, [[-10, -5], [-10, 5], [-16, 6], [-16, -6]], '#fff'); // White wrist tape
+    c.restore();
+  }
   preview(canvas, config, state = 'idle') {
     const c = canvas.getContext('2d'); c.clearRect(0,0,canvas.width,canvas.height);
     const glow = c.createRadialGradient(120,130,8,120,130,125); glow.addColorStop(0,`${config.accent}55`); glow.addColorStop(1,`${config.accent}00`); c.fillStyle = glow; c.fillRect(0,0,240,240);

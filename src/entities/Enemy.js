@@ -8,6 +8,11 @@ export class Enemy extends Fighter {
   }
   update(dt,player) {
     if(!this.tickStatus(dt)) { this.aiState=this.health>0?(Math.abs(this.knockbackX)>30?'knockback':'hurt'):'defeated'; return; }
+
+    if (this.health > 0 && this.health < this.maxHealth && this.config.ai?.healthRegeneration) {
+      this.health = Math.min(this.maxHealth, this.health + this.config.ai.healthRegeneration * dt);
+    }
+
     if(player.health<=0) { this.state='idle'; this.aiState='idle'; this.attack=null; return; }
     if(this.attack) {
       this.aiState='attack';

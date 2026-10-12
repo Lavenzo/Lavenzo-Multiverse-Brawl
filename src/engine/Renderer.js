@@ -15,6 +15,174 @@ export class Renderer {
     const height = Math.round(width*9/16);
     if(this.canvas.width !== width || this.canvas.height !== height) { this.canvas.width=width; this.canvas.height=height; }
   }
+
+  drawFightClub(c, cx, shakeY) {
+    c.save(); c.translate(0, shakeY);
+    // Dark underground wall
+    c.fillStyle = '#0f1115'; c.fillRect(0, 0, 960, 540);
+
+    // Industrial panels
+    c.fillStyle = '#161922';
+    for (let i = 0; i < 10; i++) {
+      const px = -((cx * 0.3) % 400) + i * 400;
+      c.fillRect(px, 100, 300, 350);
+      c.fillStyle = '#222633';
+      c.fillRect(px + 10, 110, 280, 20); // Top beam
+      c.fillStyle = '#161922';
+
+      // Caution stripes
+      c.save(); c.translate(px + 150, 250); c.rotate(Math.PI / 4);
+      c.fillStyle = '#b38c22';
+      for (let j = -100; j < 100; j += 40) c.fillRect(j, -150, 20, 300);
+      c.restore();
+
+      // Posters
+      if (i % 2 === 0) {
+        c.fillStyle = '#7a2222'; c.fillRect(px + 80, 200, 60, 80);
+        c.fillStyle = '#fff'; c.font = '14px monospace'; c.fillText('FIGHT', px + 85, 220); c.fillText('NIGHT', px + 85, 240);
+      } else {
+        c.fillStyle = '#22557a'; c.fillRect(px + 150, 180, 50, 70);
+        c.fillStyle = '#fff'; c.font = '10px monospace'; c.fillText('WANTED', px + 155, 195);
+      }
+    }
+
+    // Chainlink fence / cage boundary
+    c.strokeStyle = '#2a2e3d'; c.lineWidth = 3;
+    c.beginPath();
+    for (let x = -((cx * 0.5) % 80); x < 960; x += 80) {
+      for (let y = 300; y < 450; y += 40) {
+        c.moveTo(x, y); c.lineTo(x + 40, y + 20); c.lineTo(x + 80, y);
+        c.moveTo(x, y + 40); c.lineTo(x + 40, y + 20); c.lineTo(x + 80, y + 40);
+      }
+    }
+    c.stroke();
+
+    // Top fence rail
+    c.fillStyle = '#1a1d26'; c.fillRect(0, 300, 960, 15);
+
+    // Spectators (Silhouettes)
+    c.fillStyle = '#0a0c10';
+    const time = performance.now() / 1000;
+    for (let i = 0; i < 20; i++) {
+      const px = -((cx * 0.7) % 150) + i * 150;
+      const bob = Math.sin(time * 3 + i) * 5;
+      c.beginPath(); c.arc(px + 40, 400 + bob, 15, 0, Math.PI*2); c.fill(); // Head
+      c.fillRect(px + 20, 415 + bob, 40, 40); // Body
+
+      const bob2 = Math.cos(time * 2 + i) * 4;
+      c.beginPath(); c.arc(px + 100, 410 + bob2, 12, 0, Math.PI*2); c.fill();
+      c.fillRect(px + 85, 422 + bob2, 30, 30);
+    }
+
+    // Arena Floor
+    c.fillStyle = '#1a1616'; c.fillRect(0, 450, 960, 90);
+    c.fillStyle = '#2d1616'; c.fillRect(0, 450, 960, 5); // Ring boundary line
+
+    // Blood splatters / grunge on floor
+    c.fillStyle = '#100a0a';
+    for (let i = 0; i < 15; i++) {
+      const px = -((cx * 1.0) % 300) + i * 300;
+      c.beginPath(); c.ellipse(px + 50, 480, 20, 5, Math.PI/6, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(px + 200, 510, 30, 8, -Math.PI/8, 0, Math.PI*2); c.fill();
+    }
+
+    // Spotlights overlay
+    c.globalCompositeOperation = 'screen';
+    const spot = c.createLinearGradient(0, 0, 0, 540);
+    spot.addColorStop(0, '#ffffff15'); spot.addColorStop(1, '#ffffff00');
+    c.fillStyle = spot;
+    for (let i = 0; i < 4; i++) {
+      const px = -((cx * 0.2) % 600) + i * 600 + 100;
+      c.beginPath(); c.moveTo(px, -50); c.lineTo(px - 150, 540); c.lineTo(px + 150, 540); c.fill();
+    }
+    c.globalCompositeOperation = 'source-over';
+
+    c.restore();
+  }
+
+  drawFightClub(c, cx) {
+    c.save();
+    // Dark underground wall
+    c.fillStyle = '#0f1115'; c.fillRect(0, 0, 960, 540);
+
+    // Industrial panels
+    c.fillStyle = '#161922';
+    for (let i = 0; i < 10; i++) {
+      const px = -((cx * 0.3) % 400) + i * 400;
+      c.fillRect(px, 100, 300, 350);
+      c.fillStyle = '#222633';
+      c.fillRect(px + 10, 110, 280, 20); // Top beam
+      c.fillStyle = '#161922';
+
+      // Caution stripes
+      c.save(); c.translate(px + 150, 250); c.rotate(Math.PI / 4);
+      c.fillStyle = '#b38c22';
+      for (let j = -100; j < 100; j += 40) c.fillRect(j, -150, 20, 300);
+      c.restore();
+
+      // Posters
+      if (i % 2 === 0) {
+        c.fillStyle = '#7a2222'; c.fillRect(px + 80, 200, 60, 80);
+        c.fillStyle = '#fff'; c.font = '14px monospace'; c.fillText('FIGHT', px + 85, 220); c.fillText('NIGHT', px + 85, 240);
+      } else {
+        c.fillStyle = '#22557a'; c.fillRect(px + 150, 180, 50, 70);
+        c.fillStyle = '#fff'; c.font = '10px monospace'; c.fillText('WANTED', px + 155, 195);
+      }
+    }
+
+    // Chainlink fence / cage boundary
+    c.strokeStyle = '#2a2e3d'; c.lineWidth = 3;
+    c.beginPath();
+    for (let x = -((cx * 0.5) % 80); x < 960; x += 80) {
+      for (let y = 300; y < 450; y += 40) {
+        c.moveTo(x, y); c.lineTo(x + 40, y + 20); c.lineTo(x + 80, y);
+        c.moveTo(x, y + 40); c.lineTo(x + 40, y + 20); c.lineTo(x + 80, y + 40);
+      }
+    }
+    c.stroke();
+
+    // Top fence rail
+    c.fillStyle = '#1a1d26'; c.fillRect(0, 300, 960, 15);
+
+    // Spectators (Silhouettes)
+    c.fillStyle = '#0a0c10';
+    const time = performance.now() / 1000;
+    for (let i = 0; i < 20; i++) {
+      const px = -((cx * 0.7) % 150) + i * 150;
+      const bob = Math.sin(time * 3 + i) * 5;
+      c.beginPath(); c.arc(px + 40, 400 + bob, 15, 0, Math.PI*2); c.fill(); // Head
+      c.fillRect(px + 20, 415 + bob, 40, 40); // Body
+
+      const bob2 = Math.cos(time * 2 + i) * 4;
+      c.beginPath(); c.arc(px + 100, 410 + bob2, 12, 0, Math.PI*2); c.fill();
+      c.fillRect(px + 85, 422 + bob2, 30, 30);
+    }
+
+    // Arena Floor
+    c.fillStyle = '#1a1616'; c.fillRect(0, 450, 960, 90);
+    c.fillStyle = '#2d1616'; c.fillRect(0, 450, 960, 5); // Ring boundary line
+
+    // Blood splatters / grunge on floor
+    c.fillStyle = '#100a0a';
+    for (let i = 0; i < 15; i++) {
+      const px = -((cx * 1.0) % 300) + i * 300;
+      c.beginPath(); c.ellipse(px + 50, 480, 20, 5, Math.PI/6, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(px + 200, 510, 30, 8, -Math.PI/8, 0, Math.PI*2); c.fill();
+    }
+
+    // Spotlights overlay
+    c.globalCompositeOperation = 'screen';
+    const spot = c.createLinearGradient(0, 0, 0, 540);
+    spot.addColorStop(0, '#ffffff15'); spot.addColorStop(1, '#ffffff00');
+    c.fillStyle = spot;
+    for (let i = 0; i < 4; i++) {
+      const px = -((cx * 0.2) % 600) + i * 600 + 100;
+      c.beginPath(); c.moveTo(px, -50); c.lineTo(px - 150, 540); c.lineTo(px + 150, 540); c.fill();
+    }
+    c.globalCompositeOperation = 'source-over';
+
+    c.restore();
+  }
   draw(game) {
     const c=this.ctx,p=game.player;
     c.setTransform(this.canvas.width/960,0,0,this.canvas.height/540,0,0);
@@ -22,7 +190,11 @@ export class Renderer {
     if(p!==this.lastPlayer) { this.camera=target; this.lastPlayer=p; }
     if(game.state==='playing' && !game.ui.developerOpen) this.camera+=(target-this.camera)*(1-Math.exp(-10*(game.loop.delta || 0)));
     if(!p) this.camera=0;
-    this.city.draw(c,this.camera,this.assets.images.get(this.assets.config.backgrounds.city));
+    if (game.stage && game.stage.number === 2) {
+      this.drawFightClub(c, this.camera);
+    } else {
+      this.city.draw(c,this.camera,this.assets.images.get(this.assets.config.backgrounds.city));
+    }
     // The HUD boss uses the DOM bar at the top centre; a simultaneous mini-boss bar moves below it.
     this.hudBoss=game.activeBoss();
     if(p) { for(const enemy of game.enemies) this.telegraph(enemy); for(const actor of [p,...game.enemies].sort((a,b)=>a.y-b.y)) this.player(actor); }
