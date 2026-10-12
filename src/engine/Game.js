@@ -14,19 +14,29 @@ export class Game {
   constructor(ui) { this.ui = ui; this.input = new InputManager(); this.progress = new ProgressManager(); this.state = 'menu'; this.character = characters[0]; this.stage = stages[0]; this.developerMode = false; this.enemies=[]; this.enemyDifficulty=1; this.combat=new CombatSystem(); this.waves=new StageManager(this); this.resetCheats(); this.renderer = new Renderer(document.querySelector('canvas')); this.loop = new GameLoop(dt => this.update(dt), () => { this.renderer.draw(this); this.ui.hud(this); }); }
   resetCheats() { this.cheats = { invincible: false, infiniteLives: false, infiniteEnergy: false, oneHitKill: false, debug: false }; }
   selectMode(developer) { this.developerMode = developer; this.resetCheats(); this.state = 'select'; this.syncAPI(); this.ui.screen(this); }
-  startStage(number = 1) { if (number !== 1) return false; this.stage = stages[0]; this.player = new Player(this.character); this.score=0; this.lives=3; this.enemyDifficulty=1; this.state = 'playing'; this.waves.startWave(1); this.input.clear(); this.ui.closeDeveloper(); this.ui.screen(this); return true; }
+  startStage(number = 1) {
+    if (number !== 1 && number !== 2) return false;
+    this.stage = stages[number - 1];
+    if (number === 1 || !this.player) { this.player = new Player(this.character); this.score=0; this.lives=3; }
+    else if (number === 2 && this.player) {
+      this.player.health = Math.min(this.character.health, this.player.health + Math.round(this.character.health * 0.4));
+      this.player.energy = 100; this.player.stun=0; this.player.deathTime=0; this.player.invulnerability=.8; this.player.attack=null; this.player.state='idle'; this.player.actionTime=0;
+    }
+    this.enemyDifficulty=1; this.state = 'playing'; this.waves.startWave(1); this.input.clear(); this.ui.closeDeveloper(); this.ui.screen(this); return true;
+  }
   resetGame() { this.state = 'menu'; this.player = null; this.enemies=[]; this.developerMode = false; this.enemyDifficulty=1; this.resetCheats(); this.input.clear(); this.syncAPI(); this.ui.closeDeveloper(); this.ui.screen(this); }
   toggleCheat(name, enabled = !this.cheats[name]) { if (!this.developerMode || !(name in this.cheats)) return false; this.cheats[name] = Boolean(enabled); this.ui.refreshDeveloper(this); return true; }
   developerAction(action) {
     if (!this.developerMode) return false;
-    if (action === 'restart') return this.startStage(1);
+    if (action === 'restart') return this.startStage(this.stage.number);
     if (action === 'health' && this.player) { this.player.health = this.character.health; this.player.energy = 100; this.player.stun=0; this.player.deathTime=0; this.player.invulnerability=.8; this.player.attack=null; this.player.state='idle'; this.player.actionTime=0; return true; }
     if(action==='defeat') { for(const e of this.enemies) if(e.config.tier==='regular') { e.invulnerability=0; e.receiveDamage(e.health,this.player,{knockback:0,facing:this.player.facing}); e.scored=true; } return true; }
     if(action==='clear') { this.waves.clearEnemies(); return true; }
-    if(action==='skipWave') { const skipped=this.waves.skipWave(); if(!skipped) this.ui.notify('The boss encounter is not a wave. Use the Kingpin boss tools.'); return skipped; }
+    if(action==='skipWave') { const skipped=this.waves.skipWave(); if(!skipped) this.ui.notify('The boss encounter is not a wave. Use the boss tools.'); return skipped; }
     if(action==='restartWave') return this.selectWave(this.waves.wave);
     if(action==='boss') return this.startBossEncounter();
-    this.ui.notify('Stage navigation remains deferred: Stages 2–8 are not implemented yet.'); return false;
+    if(action==='skip') { if (this.stage.number === 1) return this.startStage(2); }
+    this.ui.notify('Stage navigation remains deferred: Stages 3–8 are not implemented yet.'); return false;
   }
   createEnemy(identity,difficulty=1,position={}) {
     const config=resolveEnemy(identity,difficulty);
@@ -106,7 +116,9 @@ export class Game {
   update(dt) {
     if (this.input.take('confirm')) {
       if (this.state === 'menu') this.selectMode(false);
-      else if (['select','gameOver','stageClear'].includes(this.state)) this.startStage();
+      else if (['select'].includes(this.state)) this.startStage();
+      // To progress from stage 1 to stage 2, use the UI buttons. Hitting enter repeats the current stage.
+      else if (['gameOver', 'stageClear'].includes(this.state)) this.startStage(this.stage.number);
       else if(this.state==='paused') { this.state='playing'; this.ui.screen(this); }
     }
     if (this.state === 'select') { const direction = Number(this.input.take('right')) - Number(this.input.take('left')); if (direction) { this.character = characters[(characters.indexOf(this.character) + direction + 4) % 4]; this.ui.screen(this); } }

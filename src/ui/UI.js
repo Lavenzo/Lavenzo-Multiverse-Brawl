@@ -2,17 +2,16 @@ import { characters } from '../data/characters.js';
 import { stages } from '../data/stages.js';
 import { CharacterRenderer } from '../rendering/CharacterRenderer.js';
 import { enemyDefinitions } from '../data/enemies.js';
-import { cityWaves } from '../systems/StageManager.js';
 export class UI {
   constructor() {
     document.querySelector('#app').innerHTML = `<header><a href="#" id="home">L<span> / </span>MB</a><span>FOUNDATION BUILD <b>01</b></span></header><main><div class="intro"><span class="eyebrow">LAVENZO KAI KAI PRESENTS</span><h1>LAVENZO<br><span>MULTIVERSE BRAWL</span></h1><p>4 HEROES · 8 STAGES · ONE FINAL BATTLE</p></div><section class="cabinet"><div class="cabinet-top"><span>● ARCADE SYSTEM / ONLINE</span><span id="mode-label">SINGLE PLAYER</span></div><div class="viewport"><canvas width="960" height="540" aria-label="Game arena"></canvas><div id="hud"></div><div id="boss-banner" data-testid="boss-banner" role="status" hidden></div><div id="screen"></div><div id="developer" hidden></div><div id="toast" role="status"></div></div><div class="controls"><span><kbd>↑ ↓ ← →</kbd> MOVE</span><span><kbd>A</kbd> PUNCH</span><span><kbd>S</kbd> KICK</span><span><kbd>D</kbd> SPECIAL</span><span><kbd>W</kbd> STRONG</span><span><kbd>SPACE</kbd> JUMP</span><span><kbd>ESC</kbd> PAUSE</span></div></section><div class="below"><span>01 / CITY STREETS <b>MOVEMENT & ANIMATION PREVIEW</b></span><span>ORIGINAL PLACEHOLDER ART</span></div></main><footer><span>Developed by Lavenzo Kai Kai</span><span>Unofficial Fan Game · Personal Hobby Project</span></footer>`;
     this.developerOpen = false; this.characterRenderer = new CharacterRenderer(); this.hudKey = ''; this.bossKey = ''; this.bannerKey = ''; this.lastHudUpdate = 0;
     document.querySelector('header b').textContent = '03'; document.querySelector('.below b').textContent='FOUR WAVES + WILSON FISK BOSS';
     document.querySelector('.below span:last-child').textContent = 'ORIGINAL CANVAS ILLUSTRATIONS';
-    document.querySelector('#hud').innerHTML = '<div><strong id="hud-name"></strong><div class="bar"><i id="hud-health"></i></div><div class="bar energy"><i id="hud-energy"></i></div><small id="hud-stats"></small></div><div class="boss-hud" id="boss-hud" data-testid="boss-hud" hidden><span class="boss-label" id="boss-label"></span><strong id="boss-name" data-testid="boss-name"></strong><div class="bar boss-bar"><i class="boss-trail" id="boss-trail"></i><i class="boss-fill" id="boss-health" data-testid="boss-health"></i></div><small id="boss-stats"></small></div><div class="stage-hud">STAGE 01<br><strong>CITY STREETS</strong><span id="hud-wave" data-testid="wave-hud"></span></div><pre class="debug" hidden></pre>';
+    document.querySelector('#hud').innerHTML = '<div><strong id="hud-name"></strong><div class="bar"><i id="hud-health"></i></div><div class="bar energy"><i id="hud-energy"></i></div><small id="hud-stats"></small></div><div class="boss-hud" id="boss-hud" data-testid="boss-hud" hidden><span class="boss-label" id="boss-label"></span><strong id="boss-name" data-testid="boss-name"></strong><div class="bar boss-bar"><i class="boss-trail" id="boss-trail"></i><i class="boss-fill" id="boss-health" data-testid="boss-health"></i></div><small id="boss-stats"></small></div><div class="stage-hud"><span id="hud-stage-number">STAGE 01</span><br><strong id="hud-stage-name">CITY STREETS</strong><span id="hud-wave" data-testid="wave-hud"></span></div><pre class="debug" hidden></pre>';
     const $ = selector => document.querySelector(selector);
     this.hudElements = { root: $('#hud'), name: $('#hud-name'), health: $('#hud-health'), energy: $('#hud-energy'), stats: $('#hud-stats'), wave:$('#hud-wave'), debug: $('.debug'),
-      boss: $('#boss-hud'), bossLabel: $('#boss-label'), bossName: $('#boss-name'), bossHealth: $('#boss-health'), bossTrail: $('#boss-trail'), bossStats: $('#boss-stats'), banner: $('#boss-banner') };
+      boss: $('#boss-hud'), bossLabel: $('#boss-label'), bossName: $('#boss-name'), bossHealth: $('#boss-health'), bossTrail: $('#boss-trail'), bossStats: $('#boss-stats'), banner: $('#boss-banner'), stageNumber: $('#hud-stage-number'), stageName: $('#hud-stage-name') };
   }
   bind(game) {
     this.game = game; document.querySelector('#home').onclick = e => { e.preventDefault(); game.resetGame(); }; this.screen(game);
@@ -25,9 +24,13 @@ export class UI {
   }
   button(id, text, fn, disabled = false) { const button = document.createElement('button'); button.textContent = text; button.dataset.testid = id; button.disabled = disabled; button.onclick = fn; return button; }
   screen(g) {
+    const below=document.querySelector('.below span');
+    const label=g.stage.number===2?'02 / UNDERGROUND FIGHT CLUB':'01 / CITY STREETS';
+    below.firstChild.textContent=label+' ';
+    below.querySelector('b').textContent=g.stage.number===2?'FOUR WAVES + MIKE TYSON BOSS':'FOUR WAVES + WILSON FISK BOSS';
     const root = document.querySelector('#screen'); root.replaceChildren(); root.hidden = g.state === 'playing'; root.dataset.state = g.state; document.querySelector('#mode-label').textContent = g.developerMode ? 'DEVELOPER MODE / P TOOLS' : 'SINGLE PLAYER';
     if (g.state === 'menu') {
-      root.innerHTML = `<span class="eyebrow">THE MULTIVERSE IS CALLING</span><h2>CHOOSE YOUR FIGHT.</h2><div class="menu-lineup"></div><p class="note">Milestone 3 / Stage 1: four mixed-universe waves and the Kingpin boss.<br>Stages 2–8 are still in development.</p>`;
+      root.innerHTML = `<span class="eyebrow">THE MULTIVERSE IS CALLING</span><h2>CHOOSE YOUR FIGHT.</h2><div class="menu-lineup"></div><p class="note">Stages 1 and 2 / City Streets and Underground Fight Club.<br>Stages 3 to 8 are still in development.</p>`;
       for(const character of characters) { const canvas = document.createElement('canvas'); canvas.width = 240; canvas.height = 240; canvas.setAttribute('aria-label',character.name); root.querySelector('.menu-lineup').append(canvas); this.preview(canvas,character); }
       root.append(this.button('start-normal', 'START GAME →', () => g.selectMode(false)), this.button('start-developer', 'DEVELOPER / TEST MODE', () => g.selectMode(true)));
     } else if (g.state === 'select') {
@@ -49,10 +52,15 @@ export class UI {
       root.append(this.button('resume', 'RESUME →', () => { g.state = 'playing'; this.screen(g); }), this.button('return-menu', 'MAIN MENU', () => g.resetGame()));
     } else if(g.state==='stageClear' || g.state==='gameOver') {
       const clear=g.state==='stageClear',bossFight=g.waves.phase!=='waves';
-      const note=clear?(g.developerMode?'Developer run: score and progress are not saved.':`Best score ${g.progress.data.bestScore}. Stage 2 is still in development.`)
-        :bossFight?'Jump over the Ground Slam shockwave and step out of the Bull Charge lane.':'Try a special attack to push back a group. Move between lanes to dodge.';
-      root.innerHTML=`<span class="eyebrow">CITY STREETS / ${clear?'WILSON FISK DEFEATED':'OUT OF LIVES'}</span><h2 data-testid="result-title">${clear?'STAGE 1 CLEARED':'GAME OVER'}</h2><p data-testid="final-score">${clear?'FINAL SCORE':'SCORE'} ${g.score}</p><p class="note">${note}</p>`;
-      root.append(this.button('retry',clear?'RETRY STAGE 1':'RETRY CITY STREETS',()=>g.startStage()),this.button('return-menu','MAIN MENU',()=>g.resetGame()));
+      const note=clear?(g.developerMode?'Developer run: score and progress are not saved.':`Best score ${g.progress.data.bestScore}. ${g.stage.number===1?"Continue to Underground Fight Club.":"Stage 3 is still in development."}`)
+        :bossFight?(g.stage.number===2?'Keep your guard distance, punish hook recoveries and step out of the Knockout Rush lane.':'Jump over the Ground Slam shockwave and step out of the Bull Charge lane.'):'Try a special attack to push back a group. Move between lanes to dodge.';
+      const eyebrowStr = g.stage.number === 1 ? `CITY STREETS / ${clear?'WILSON FISK DEFEATED':'OUT OF LIVES'}` : `UNDERGROUND FIGHT CLUB / ${clear?'MIKE TYSON DEFEATED':'OUT OF LIVES'}`;
+      root.innerHTML=`<span class="eyebrow">${eyebrowStr}</span><h2 data-testid="result-title">${clear?`STAGE ${g.stage.number} CLEARED`:'GAME OVER'}</h2><p data-testid="final-score">${clear?'FINAL SCORE':'SCORE'} ${g.score}</p><p class="note">${note}</p>`;
+      if (clear && g.stage.number === 1) {
+        root.append(this.button('continue', 'CONTINUE TO STAGE 2', () => g.startStage(2)), this.button('retry', 'RETRY STAGE 1', () => g.startStage(1)), this.button('return-menu', 'MAIN MENU', () => g.resetGame()));
+      } else {
+        root.append(this.button('retry', clear?`RETRY STAGE ${g.stage.number}`:`RETRY STAGE ${g.stage.number}`, () => g.startStage(g.stage.number)), this.button('return-menu', 'MAIN MENU', () => g.resetGame()));
+      }
     }
   }
   hud(g) {
@@ -61,13 +69,18 @@ export class UI {
     const now=performance.now(); if(now-this.lastHudUpdate<80) return; this.lastHudUpdate=now;
     const energy=Math.floor(g.player.energy),key=`${g.character.id}:${g.player.health}:${energy}:${g.lives}:${g.score}`;
     if(key!==this.hudKey) { this.hudKey=key; h.name.textContent=g.character.name.toUpperCase(); h.health.style.width=`${g.player.health/g.character.health*100}%`; h.energy.style.width=`${energy}%`; h.stats.textContent=`HP ${g.player.health} / ${g.character.health} · LIVES ${g.lives} · SCORE ${String(g.score).padStart(6,'0')}`; }
+    if(h.stageNumber && h.stageName) {
+      h.stageNumber.textContent = g.stage.number === 1 ? 'STAGE 01' : 'STAGE 02';
+      h.stageName.textContent = g.stage.number === 1 ? 'CITY STREETS' : 'UNDERGROUND FIGHT CLUB';
+    }
     const phase=g.waves.phase,boss=g.activeBoss();
-    const bossText={warning:'WARNING · BOSS APPROACHING',entrance:'BOSS · WILSON FISK',boss:`BOSS · WILSON FISK${boss?.enraged?' · ENRAGED':''}`,defeated:'WILSON FISK DEFEATED!',cleared:'STAGE 1 CLEARED'}[phase];
+    const bossName = g.stage.number === 1 ? 'WILSON FISK' : 'MIKE TYSON';
+    const bossText={warning:'WARNING · BOSS APPROACHING',entrance:`BOSS · ${bossName}`,boss:`BOSS · ${bossName}${boss?.enraged?' · ENRAGED':''}`,defeated:`${bossName} DEFEATED!`,cleared:`STAGE ${g.stage.number} CLEARED`}[phase];
     const waveText=g.waves.sandbox?'SANDBOX':bossText ?? `WAVE ${g.waves.wave} / 4 · ${g.enemies.filter(e=>e.health>0).length} ENEMIES${g.waves.transition>0?' / CLEAR!':''}`;
     if(h.wave.textContent!==waveText) h.wave.textContent=waveText;
     this.bossHud(g,boss,phase); this.banner(boss,g.state==='playing'?phase:'');
     h.debug.hidden=!(g.developerMode && g.cheats.debug);
-    if(!h.debug.hidden) h.debug.textContent=`Stage: 1 / Wave ${g.waves.wave} / ${phase} | Hero: ${g.character.id}\nHP: ${g.player.health} | x: ${g.player.x.toFixed(0)} y: ${g.player.y.toFixed(0)} z: ${g.player.z.toFixed(0)}\nEnemies: ${g.enemies.filter(e=>e.health>0).length} | Mini-boss: ${g.enemies.some(e=>e.health>0&&e.config.tier==='miniboss')?'Venom':'none'}\nBoss: ${boss?`${boss.config.name} ${boss.health}/${boss.maxHealth}${boss.enraged?' enraged':''} ${boss.aiState}${boss.attack?` / ${boss.attack.name}`:''}`:'none'}\nState: ${g.state}${this.developerOpen ? ' (tools open)' : ''} | FPS: ${g.loop.fps.toFixed(0)}\nCheats: ${Object.entries(g.cheats).filter(([,v])=>v).map(([k])=>k).join(', ') || 'none'}`;
+    if(!h.debug.hidden) h.debug.textContent=`Stage: ${g.stage.number} / Wave ${g.waves.wave} / ${phase} | Hero: ${g.character.id}\nHP: ${g.player.health} | x: ${g.player.x.toFixed(0)} y: ${g.player.y.toFixed(0)} z: ${g.player.z.toFixed(0)}\nEnemies: ${g.enemies.filter(e=>e.health>0).length} | Mini-boss: ${g.enemies.some(e=>e.health>0&&e.config.tier==='miniboss')?'Venom':'none'}\nBoss: ${boss?`${boss.config.name} ${boss.health}/${boss.maxHealth}${boss.enraged?' enraged':''} ${boss.aiState}${boss.attack?` / ${boss.attack.name}`:''}`:'none'}\nState: ${g.state}${this.developerOpen ? ' (tools open)' : ''} | FPS: ${g.loop.fps.toFixed(0)}\nCheats: ${Object.entries(g.cheats).filter(([,v])=>v).map(([k])=>k).join(', ') || 'none'}`;
   }
   // Boss bar fills during the entrance; the delayed trail shows recent damage through CSS.
   bossHud(g,boss,phase) {
@@ -77,7 +90,7 @@ export class UI {
     const fill=phase==='entrance'?Math.min(1,g.waves.phaseTime/1.2):1,ratio=Math.max(0,boss.health/boss.maxHealth)*fill;
     const key=`${boss.id}:${boss.health}:${boss.maxHealth}:${boss.enraged}:${ratio.toFixed(3)}`;
     if(key===this.bossKey) return; this.bossKey=key;
-    h.bossName.textContent=boss.config.name.toUpperCase(); h.bossLabel.textContent=boss.enraged?'STAGE 1 BOSS · ENRAGED':'STAGE 1 BOSS';
+    h.bossName.textContent=boss.config.name.toUpperCase(); h.bossLabel.textContent=boss.enraged?`STAGE ${g.stage.number} BOSS · ENRAGED`:`STAGE ${g.stage.number} BOSS`;
     h.bossHealth.style.width=h.bossTrail.style.width=`${ratio*100}%`; h.bossStats.textContent=`HP ${boss.health} / ${boss.maxHealth}`;
     h.boss.classList.toggle('enraged',Boolean(boss.enraged));
   }
@@ -106,7 +119,7 @@ export class UI {
     difficulty.onchange=()=>{ if(!g.setEnemyDifficulty(Number(difficulty.value))) { difficulty.value=g.enemyDifficulty; this.notify('Difficulty must be between 0.5 and 2.'); } };
     const spawnRow=document.createElement('div'); spawnRow.className='dev-spawn'; spawnRow.append(enemySelect,difficulty,this.button('dev-spawn-enemy','SPAWN SELECTED',()=>g.spawnEnemy(enemySelect.value)),this.button('dev-spawn-regular','REGULAR / ROMAN',()=>g.spawnEnemy('roman')),this.button('dev-spawn-elite','ELITE / SHREDDER',()=>g.spawnEnemy('shredder')),this.button('dev-spawn-miniboss','MINI-BOSS / VENOM',()=>g.spawnEnemy('venom'))); root.append(spawnRow);
     const waveSelect=document.createElement('select'); waveSelect.dataset.testid='developer-wave'; waveSelect.setAttribute('aria-label','Wave selection');
-    cityWaves.forEach((wave,i)=>{ const option=document.createElement('option'); option.value=i+1; option.textContent=`Wave ${i+1} / ${wave.name}`; option.selected=g.waves.wave===i+1; waveSelect.append(option); });
+    g.waves.wavesData.forEach((wave,i)=>{ const option=document.createElement('option'); option.value=i+1; option.textContent=`Wave ${i+1} / ${wave.name}`; option.selected=g.waves.wave===i+1; waveSelect.append(option); });
     root.append(waveSelect,this.button('dev-select-wave','START WAVE',()=>{g.selectWave(Number(waveSelect.value));this.closeDeveloper();}),this.button('dev-skip-wave','SKIP WAVE',()=>{g.developerAction('skipWave');this.closeDeveloper();}),this.button('dev-restart-wave','RESTART WAVE',()=>{g.developerAction('restartWave');this.closeDeveloper();}),this.button('dev-clear-enemies','CLEAR ALL / SANDBOX',()=>g.developerAction('clear')));
     root.append(this.bossTools(g));
     const grid = document.createElement('div'); grid.className = 'dev-grid';
@@ -118,16 +131,17 @@ export class UI {
   bossTools(g) {
     const boss=g.activeBoss(),alive=Boolean(boss && boss.health>0),row=document.createElement('div'); row.className='dev-boss'; row.dataset.testid='developer-boss-tools';
     const status=document.createElement('p'); status.className='dev-boss-status'; status.dataset.testid='dev-boss-status';
-    status.textContent=alive?`WILSON FISK ${boss.health} / ${boss.maxHealth} HP · ${boss.enraged?'ENRAGED (BELOW 50%)':'PHASE 1'} · ${g.waves.phase.toUpperCase()}`:`STAGE 1 BOSS / WILSON FISK · ${g.waves.phase==='waves'?(g.waves.sandbox?'SANDBOX':`WAVE ${g.waves.wave}`):g.waves.phase.toUpperCase()}`;
-    const max=alive?boss.maxHealth:enemyDefinitions.kingpin.health,health=document.createElement('input'); health.type='number'; health.min='1'; health.step='1'; health.max=String(max); health.value=String(Math.floor(max*.45));
-    health.dataset.testid='dev-boss-health-value'; health.setAttribute('aria-label','Kingpin health');
+    const bossName = g.stage.number === 1 ? 'WILSON FISK' : 'MIKE TYSON';
+    status.textContent=alive?`${bossName} ${boss.health} / ${boss.maxHealth} HP · ${boss.enraged?'ENRAGED (BELOW 50%)':'PHASE 1'} · ${g.waves.phase.toUpperCase()}`:`STAGE ${g.stage.number} BOSS / ${bossName} · ${g.waves.phase==='waves'?(g.waves.sandbox?'SANDBOX':`WAVE ${g.waves.wave}`):g.waves.phase.toUpperCase()}`;
+    const max=alive?boss.maxHealth:enemyDefinitions[g.waves.bossData.id].health,health=document.createElement('input'); health.type='number'; health.min='1'; health.step='1'; health.max=String(max); health.value=String(Math.floor(max*.45));
+    health.dataset.testid='dev-boss-health-value'; health.setAttribute('aria-label','Boss health');
     row.append(status,
       this.button('dev-boss','JUMP TO BOSS ENCOUNTER · Shift+3',()=>g.developerAction('boss')),
-      this.button('dev-spawn-kingpin','SPAWN WILSON FISK NOW',()=>g.startBossEncounter({intro:false,restore:false})),
+      this.button('dev-spawn-boss',`SPAWN ${bossName} NOW`,()=>g.startBossEncounter({intro:false,restore:false})),
       this.button('dev-restart-boss','RESTART BOSS FIGHT',()=>g.restartBossFight()),
       this.button('dev-defeat-boss','DEFEAT BOSS',()=>{ if(g.defeatBoss()) this.closeDeveloper(); },!alive),
-      health,this.button('dev-set-boss-health','SET WILSON FISK HP',()=>{ if(g.setBossHealth(Number(health.value))) this.refreshDeveloper(g); else this.notify(`Kingpin health must be a whole number from 1 to ${health.max}.`); },!alive),
-      this.button('dev-return-stage','RETURN TO STAGE 1 · WAVE 1',()=>g.developerAction('restart')));
+      health,this.button('dev-set-boss-health',`SET ${bossName} HP`,()=>{ if(g.setBossHealth(Number(health.value))) this.refreshDeveloper(g); else this.notify(`Boss health must be a whole number from 1 to ${health.max}.`); },!alive),
+      this.button('dev-return-stage',`RETURN TO STAGE ${g.stage.number} · WAVE 1`,()=>g.developerAction('restart')));
     return row;
   }
   notify(message) { const root = document.querySelector('#toast'); root.textContent = message; clearTimeout(this.toastTimer); this.toastTimer = setTimeout(() => root.textContent = '', 4000); }

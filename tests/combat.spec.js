@@ -49,7 +49,7 @@ test('four configured waves only advance after the final living enemy falls',asy
   const result=await page.evaluate(async()=>{
     const {StageManager}=await import('/src/systems/StageManager.js'); const {Player}=await import('/src/entities/Player.js'); const {Enemy}=await import('/src/entities/Enemy.js');
     const {characters}=await import('/src/data/characters.js'); const {resolveEnemy}=await import('/src/data/enemies.js'); const {CombatSystem}=await import('/src/combat/CombatSystem.js'); const {beginAttack,playerAttack}=await import('/src/data/combat.js');
-    let finished=0; const game={player:new Player(characters[3]),enemies:[],createEnemy(id,diff,position){const e=new Enemy(resolveEnemy(id,diff),position.x,position.y);this.enemies.push(e);},finishWaves(){finished++;}};
+    let finished=0; const game={stage:{number:1},player:new Player(characters[3]),enemies:[],createEnemy(id,diff,position){const e=new Enemy(resolveEnemy(id,diff),position.x,position.y);this.enemies.push(e);},finishWaves(){finished++;}};
     const waves=new StageManager(game),combat=new CombatSystem(),rosters=[]; waves.startWave(1); let waits=true;
     for(let n=1;n<=4;n++) {
       rosters.push(game.enemies.map(e=>e.config.id));
