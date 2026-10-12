@@ -102,82 +102,77 @@ export class Renderer {
 
   drawFightClub(c, cx) {
     c.save();
-    // Dark underground wall
-    c.fillStyle = '#0f1115'; c.fillRect(0, 0, 960, 540);
+    // Deep dark brick/concrete background
+    c.fillStyle = '#111214'; c.fillRect(0, 0, 960, 540);
 
-    // Industrial panels
-    c.fillStyle = '#161922';
-    for (let i = 0; i < 10; i++) {
-      const px = -((cx * 0.3) % 400) + i * 400;
-      c.fillRect(px, 100, 300, 350);
-      c.fillStyle = '#222633';
-      c.fillRect(px + 10, 110, 280, 20); // Top beam
-      c.fillStyle = '#161922';
-
-      // Caution stripes
-      c.save(); c.translate(px + 150, 250); c.rotate(Math.PI / 4);
-      c.fillStyle = '#b38c22';
-      for (let j = -100; j < 100; j += 40) c.fillRect(j, -150, 20, 300);
-      c.restore();
-
-      // Posters
-      if (i % 2 === 0) {
-        c.fillStyle = '#7a2222'; c.fillRect(px + 80, 200, 60, 80);
-        c.fillStyle = '#fff'; c.font = '14px monospace'; c.fillText('FIGHT', px + 85, 220); c.fillText('NIGHT', px + 85, 240);
-      } else {
-        c.fillStyle = '#22557a'; c.fillRect(px + 150, 180, 50, 70);
-        c.fillStyle = '#fff'; c.font = '10px monospace'; c.fillText('WANTED', px + 155, 195);
+    // Distant brick texture
+    c.fillStyle = '#16171a';
+    for (let y = 0; y < 200; y += 30) {
+      for (let x = 0; x < 1200; x += 60) {
+        const offset = (y / 30) % 2 === 0 ? 0 : 30;
+        const px = -((cx * 0.1) % 60) + x + offset - 100;
+        c.fillRect(px, y, 55, 25);
       }
     }
 
-    // Chainlink fence / cage boundary
-    c.strokeStyle = '#2a2e3d'; c.lineWidth = 3;
-    c.beginPath();
-    for (let x = -((cx * 0.5) % 80); x < 960; x += 80) {
-      for (let y = 300; y < 450; y += 40) {
-        c.moveTo(x, y); c.lineTo(x + 40, y + 20); c.lineTo(x + 80, y);
-        c.moveTo(x, y + 40); c.lineTo(x + 40, y + 20); c.lineTo(x + 80, y + 40);
-      }
+    // Overhead truss/lighting rig
+    c.fillStyle = '#08090a'; c.fillRect(0, 0, 960, 60);
+    c.strokeStyle = '#1a1c22'; c.lineWidth = 2;
+    for (let i = -100; i < 1100; i += 40) {
+      const px = -((cx * 0.2) % 40) + i;
+      c.beginPath(); c.moveTo(px, 0); c.lineTo(px + 30, 60); c.stroke();
+      c.beginPath(); c.moveTo(px + 30, 0); c.lineTo(px, 60); c.stroke();
     }
-    c.stroke();
 
-    // Top fence rail
-    c.fillStyle = '#1a1d26'; c.fillRect(0, 300, 960, 15);
+    // Banners / Flags
+    for (let i = 0; i < 5; i++) {
+      const px = -((cx * 0.3) % 400) + i * 400 + 150;
+      c.fillStyle = '#5c1717'; c.fillRect(px, 60, 80, 180);
+      c.beginPath(); c.moveTo(px, 240); c.lineTo(px + 40, 200); c.lineTo(px + 80, 240); c.fill();
+      c.fillStyle = '#fff'; c.font = 'bold 20px monospace';
+      c.fillText('CLUB', px + 15, 130);
+    }
 
-    // Spectators (Silhouettes)
-    c.fillStyle = '#0a0c10';
+    // Distant dark crowd / spectators (far back)
+    c.fillStyle = '#060709';
     const time = performance.now() / 1000;
-    for (let i = 0; i < 20; i++) {
-      const px = -((cx * 0.7) % 150) + i * 150;
-      const bob = Math.sin(time * 3 + i) * 5;
-      c.beginPath(); c.arc(px + 40, 400 + bob, 15, 0, Math.PI*2); c.fill(); // Head
-      c.fillRect(px + 20, 415 + bob, 40, 40); // Body
-
-      const bob2 = Math.cos(time * 2 + i) * 4;
-      c.beginPath(); c.arc(px + 100, 410 + bob2, 12, 0, Math.PI*2); c.fill();
-      c.fillRect(px + 85, 422 + bob2, 30, 30);
+    for (let i = 0; i < 30; i++) {
+      const px = -((cx * 0.5) % 100) + i * 100;
+      const bob = Math.sin(time * 4 + i) * 4;
+      c.beginPath(); c.arc(px + 20, 290 + bob, 15, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(px + 60, 280 - bob, 14, 0, Math.PI*2); c.fill();
+      c.fillRect(px, 305 + bob, 40, 50);
+      c.fillRect(px + 45, 294 - bob, 30, 50);
     }
+
+    // Midground barricade / railing (dark, subtle)
+    c.fillStyle = '#1c1e24'; c.fillRect(0, 320, 960, 10);
+    for (let i = -100; i < 1100; i += 60) {
+      const px = -((cx * 0.5) % 60) + i;
+      c.fillRect(px, 330, 8, 40);
+    }
+    c.fillStyle = '#14151a'; c.fillRect(0, 360, 960, 10);
 
     // Arena Floor
-    c.fillStyle = '#1a1616'; c.fillRect(0, 450, 960, 90);
-    c.fillStyle = '#2d1616'; c.fillRect(0, 450, 960, 5); // Ring boundary line
+    c.fillStyle = '#18191c'; c.fillRect(0, 370, 960, 170); // Main floor
+    c.fillStyle = '#22252a'; c.fillRect(0, 370, 960, 4); // White-ish tape ring boundary
 
-    // Blood splatters / grunge on floor
-    c.fillStyle = '#100a0a';
-    for (let i = 0; i < 15; i++) {
-      const px = -((cx * 1.0) % 300) + i * 300;
-      c.beginPath(); c.ellipse(px + 50, 480, 20, 5, Math.PI/6, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.ellipse(px + 200, 510, 30, 8, -Math.PI/8, 0, Math.PI*2); c.fill();
+    // Floor details (grime/dirt)
+    c.fillStyle = '#131416';
+    for (let i = 0; i < 20; i++) {
+      const px = -((cx * 1.0) % 250) + i * 250;
+      c.beginPath(); c.ellipse(px + 50, 420, 30, 8, Math.PI/12, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(px + 180, 480, 45, 12, -Math.PI/10, 0, Math.PI*2); c.fill();
     }
 
-    // Spotlights overlay
+    // Spotlights overlay (subtle so characters remain clear)
     c.globalCompositeOperation = 'screen';
-    const spot = c.createLinearGradient(0, 0, 0, 540);
-    spot.addColorStop(0, '#ffffff15'); spot.addColorStop(1, '#ffffff00');
+    const spot = c.createLinearGradient(0, 0, 0, 400);
+    spot.addColorStop(0, '#ffffff1a'); spot.addColorStop(1, '#ffffff00');
     c.fillStyle = spot;
     for (let i = 0; i < 4; i++) {
-      const px = -((cx * 0.2) % 600) + i * 600 + 100;
-      c.beginPath(); c.moveTo(px, -50); c.lineTo(px - 150, 540); c.lineTo(px + 150, 540); c.fill();
+      const px = -((cx * 0.4) % 500) + i * 500 + 100;
+      c.beginPath(); c.moveTo(px, 0); c.lineTo(px - 100, 400); c.lineTo(px + 100, 400); c.fill();
     }
     c.globalCompositeOperation = 'source-over';
 

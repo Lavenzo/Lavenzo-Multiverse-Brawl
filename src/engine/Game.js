@@ -117,6 +117,7 @@ export class Game {
     if (this.input.take('confirm')) {
       if (this.state === 'menu') this.selectMode(false);
       else if (['select'].includes(this.state)) this.startStage();
+      // To progress from stage 1 to stage 2, use the UI buttons. Hitting enter repeats the current stage.
       else if (['gameOver', 'stageClear'].includes(this.state)) this.startStage(this.stage.number);
       else if(this.state==='paused') { this.state='playing'; this.ui.screen(this); }
     }

@@ -8,10 +8,10 @@ export class UI {
     this.developerOpen = false; this.characterRenderer = new CharacterRenderer(); this.hudKey = ''; this.bossKey = ''; this.bannerKey = ''; this.lastHudUpdate = 0;
     document.querySelector('header b').textContent = '03'; document.querySelector('.below b').textContent='FOUR WAVES + WILSON FISK BOSS';
     document.querySelector('.below span:last-child').textContent = 'ORIGINAL CANVAS ILLUSTRATIONS';
-    document.querySelector('#hud').innerHTML = '<div><strong id="hud-name"></strong><div class="bar"><i id="hud-health"></i></div><div class="bar energy"><i id="hud-energy"></i></div><small id="hud-stats"></small></div><div class="boss-hud" id="boss-hud" data-testid="boss-hud" hidden><span class="boss-label" id="boss-label"></span><strong id="boss-name" data-testid="boss-name"></strong><div class="bar boss-bar"><i class="boss-trail" id="boss-trail"></i><i class="boss-fill" id="boss-health" data-testid="boss-health"></i></div><small id="boss-stats"></small></div><div class="stage-hud">STAGE 01<br><strong>CITY STREETS</strong><span id="hud-wave" data-testid="wave-hud"></span></div><pre class="debug" hidden></pre>';
+    document.querySelector('#hud').innerHTML = '<div><strong id="hud-name"></strong><div class="bar"><i id="hud-health"></i></div><div class="bar energy"><i id="hud-energy"></i></div><small id="hud-stats"></small></div><div class="boss-hud" id="boss-hud" data-testid="boss-hud" hidden><span class="boss-label" id="boss-label"></span><strong id="boss-name" data-testid="boss-name"></strong><div class="bar boss-bar"><i class="boss-trail" id="boss-trail"></i><i class="boss-fill" id="boss-health" data-testid="boss-health"></i></div><small id="boss-stats"></small></div><div class="stage-hud"><span id="hud-stage-number">STAGE 01</span><br><strong id="hud-stage-name">CITY STREETS</strong><span id="hud-wave" data-testid="wave-hud"></span></div><pre class="debug" hidden></pre>';
     const $ = selector => document.querySelector(selector);
     this.hudElements = { root: $('#hud'), name: $('#hud-name'), health: $('#hud-health'), energy: $('#hud-energy'), stats: $('#hud-stats'), wave:$('#hud-wave'), debug: $('.debug'),
-      boss: $('#boss-hud'), bossLabel: $('#boss-label'), bossName: $('#boss-name'), bossHealth: $('#boss-health'), bossTrail: $('#boss-trail'), bossStats: $('#boss-stats'), banner: $('#boss-banner') };
+      boss: $('#boss-hud'), bossLabel: $('#boss-label'), bossName: $('#boss-name'), bossHealth: $('#boss-health'), bossTrail: $('#boss-trail'), bossStats: $('#boss-stats'), banner: $('#boss-banner'), stageNumber: $('#hud-stage-number'), stageName: $('#hud-stage-name') };
   }
   bind(game) {
     this.game = game; document.querySelector('#home').onclick = e => { e.preventDefault(); game.resetGame(); }; this.screen(game);
@@ -65,6 +65,10 @@ export class UI {
     const now=performance.now(); if(now-this.lastHudUpdate<80) return; this.lastHudUpdate=now;
     const energy=Math.floor(g.player.energy),key=`${g.character.id}:${g.player.health}:${energy}:${g.lives}:${g.score}`;
     if(key!==this.hudKey) { this.hudKey=key; h.name.textContent=g.character.name.toUpperCase(); h.health.style.width=`${g.player.health/g.character.health*100}%`; h.energy.style.width=`${energy}%`; h.stats.textContent=`HP ${g.player.health} / ${g.character.health} · LIVES ${g.lives} · SCORE ${String(g.score).padStart(6,'0')}`; }
+    if(h.stageNumber && h.stageName) {
+      h.stageNumber.textContent = g.stage.number === 1 ? 'STAGE 01' : 'STAGE 02';
+      h.stageName.textContent = g.stage.number === 1 ? 'CITY STREETS' : 'UNDERGROUND FIGHT CLUB';
+    }
     const phase=g.waves.phase,boss=g.activeBoss();
     const bossName = g.stage.number === 1 ? 'WILSON FISK' : 'MIKE TYSON';
     const bossText={warning:'WARNING · BOSS APPROACHING',entrance:`BOSS · ${bossName}`,boss:`BOSS · ${bossName}${boss?.enraged?' · ENRAGED':''}`,defeated:`${bossName} DEFEATED!`,cleared:`STAGE ${g.stage.number} CLEARED`}[phase];
